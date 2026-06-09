@@ -1,0 +1,359 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>政务数据分析 - 智能政务助手</title>
+    <link rel="stylesheet" href="layui/css/layui.css">
+    <style>
+        :root {
+            /* 统一配色体系 */
+            --gov-primary: #1890ff;
+            --gov-primary-dark: #096dd9;
+            --gov-bg: #f0f2f5;
+            --card-bg: #ffffff;
+            --text-main: #000000d9;
+            --text-secondary: #00000073;
+            --card-shadow: 0 1px 2px -2px rgba(0,0,0,0.16), 0 3px 6px 0 rgba(0,0,0,0.12), 0 5px 12px 4px rgba(0,0,0,0.09);
+        }
+
+        body {
+            font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, "Helvetica Neue", Arial, sans-serif;
+            background-color: var(--gov-bg);
+            /* 添加背景纹理 */
+            background-image: radial-gradient(#e6f7ff 1px, transparent 1px);
+            background-size: 20px 20px;
+            margin: 0; padding: 24px;
+            color: var(--text-main);
+        }
+
+        /* 顶部导航 */
+        .top-nav {
+            height: 64px;
+            background: linear-gradient(90deg, #001529 0%, #003a8c 100%);
+            display: flex; align-items: center; justify-content: space-between;
+            padding: 0 24px; color: #fff;
+            box-shadow: 0 2px 8px rgba(0,0,0,0.15);
+            margin-bottom: 24px; border-radius: 4px;
+        }
+        .nav-title { font-size: 20px; font-weight: 600; display: flex; align-items: center; letter-spacing: 1px; }
+        .nav-link {
+            color: rgba(255,255,255,0.85); text-decoration: none; font-size: 14px;
+            margin-left: 24px; transition: all 0.3s; display: inline-flex; align-items: center;
+        }
+        .nav-link i { margin-right: 6px; }
+        .nav-link:hover { color: #fff; opacity: 1; }
+        .nav-link:hover i { transform: translateX(-2px); }
+
+        /* 卡片通用 */
+        .card {
+            background: var(--card-bg); border-radius: 8px;
+            box-shadow: 0 1px 2px rgba(0,0,0,0.05);
+            padding: 24px; margin-bottom: 24px;
+            transition: all 0.3s;
+            border: 1px solid #f0f0f0;
+        }
+        .card:hover { box-shadow: var(--card-shadow); border-color: transparent; }
+
+        /* 筛选区 */
+        .filter-card { border-left: 4px solid var(--gov-primary); }
+        .filter-header { display: none; justify-content: space-between; align-items: center; margin-bottom: 16px; cursor: pointer; }
+        .filter-title { font-weight: 600; font-size: 16px; color: #1f2937; display: flex; align-items: center; }
+
+        .btn-query { background-color: var(--gov-primary); border-radius: 4px; }
+        .btn-reset { background-color: #fff; border: 1px solid #d9d9d9; color: var(--text-main); border-radius: 4px; }
+        .btn-reset:hover { border-color: var(--gov-primary); color: var(--gov-primary); }
+
+        /* 图表区 */
+        .chart-grid { display: grid; grid-template-columns: repeat(2, 1fr); gap: 24px; margin-bottom: 24px; }
+        .chart-card { height: 400px; display: flex; flex-direction: column; position: relative; overflow: hidden; }
+
+        .chart-header {
+            display: flex; justify-content: space-between; align-items: center;
+            margin-bottom: 16px; padding-bottom: 12px; border-bottom: 1px solid #f0f0f0;
+        }
+        .chart-title {
+            font-size: 16px; font-weight: 600; color: #1f2937;
+            position: relative; padding-left: 12px;
+        }
+        .chart-title::before {
+            content: ''; position: absolute; left: 0; top: 4px; bottom: 4px;
+            width: 4px; background: var(--gov-primary); border-radius: 2px;
+        }
+
+        .chart-body { flex: 1; width: 100%; min-height: 0; }
+
+        .btn-zoom {
+            color: var(--text-secondary); cursor: pointer; transition: all 0.3s; font-size: 18px;
+            padding: 4px; border-radius: 4px;
+        }
+        .btn-zoom:hover { color: var(--gov-primary); background: #e6f7ff; }
+
+        /* 表格区 */
+        .table-toolbar { display: flex; justify-content: space-between; align-items: center; margin-bottom: 16px; }
+        .table-title { font-size: 18px; font-weight: 600; color: #1f2937; display: flex; align-items: center; }
+        .table-title::before { content: ''; display: inline-block; width: 6px; height: 6px; background: var(--gov-primary); border-radius: 50%; margin-right: 10px; }
+
+        /* 加载动画优化 */
+        .loading-mask {
+            position: absolute; top: 0; left: 0; width: 100%; height: 100%;
+            background: rgba(255,255,255,0.9); z-index: 10;
+            display: none; justify-content: center; align-items: center;
+            backdrop-filter: blur(2px);
+        }
+
+        /* Layui 表单微调 */
+        .layui-form-label { padding: 9px 10px; color: var(--text-main); width: auto; }
+        .layui-input { height: 36px; border-radius: 4px; border-color: #d9d9d9; }
+        .layui-input:hover { border-color: var(--gov-primary); }
+        .layui-btn { height: 36px; line-height: 36px; }
+
+        @media screen and (max-width: 768px) {
+            body { padding: 12px; }
+            .top-nav { padding: 0 15px; height: 56px; }
+            .nav-title { font-size: 18px; }
+            .nav-link span { display: none; } /* 移动端隐藏文字 */
+            .nav-link { margin-left: 15px; }
+
+            .filter-header { display: flex; }
+            .filter-content { display: none; padding-top: 15px; border-top: 1px solid #f0f0f0; }
+            .filter-content.show { display: block; animation: slideDown 0.3s ease-out; }
+
+            .layui-inline { margin-bottom: 12px; display: block; margin-right: 0; }
+            .layui-input-inline { width: 100% !important; margin-right: 0; }
+            .chart-grid { grid-template-columns: 1fr; gap: 15px; }
+            .chart-card { height: 340px; }
+        }
+
+        @keyframes slideDown { from { opacity: 0; transform: translateY(-10px); } to { opacity: 1; transform: translateY(0); } }
+    </style>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/echarts/5.4.3/echarts.min.js"></script>
+    <script>
+        // 主题配置 (保持原逻辑)
+        (function(){
+            var config = JSON.parse(localStorage.getItem('gov_ui_config') || '{}');
+            if(config.theme === 'gray') {
+                var style = document.createElement('style');
+                style.innerHTML = `:root { --gov-primary: #595959 !important; --gov-primary-dark: #262626 !important; } .top-nav { background: #1f1f1f !important; }`;
+                document.head.appendChild(style);
+            }
+            if(config.fontsize === 'large') { document.documentElement.style.fontSize = '18px'; document.body.classList.add('font-large'); }
+        })();
+    </script>
+</head>
+<body>
+
+<div class="top-nav">
+    <div class="nav-title"><i class="layui-icon layui-icon-template-1" style="margin-right: 12px; font-size: 26px; color: #69c0ff;"></i>智能政务助手</div>
+    <div>
+        <a href="javascript:;" onclick="generateReport()" class="nav-link"><i class="layui-icon layui-icon-export"></i> <span>生成报告</span></a>
+        <a href="index.html" class="nav-link"><i class="layui-icon layui-icon-return"></i> <span>返回首页</span></a>
+    </div>
+</div>
+
+<div class="card filter-card">
+    <div class="filter-header" id="mobile-filter-toggle">
+        <span class="filter-title"><i class="layui-icon layui-icon-search" style="margin-right: 8px;"></i> 数据筛选条件</span>
+        <i class="layui-icon layui-icon-down" id="filter-icon"></i>
+    </div>
+    <div class="filter-content" id="filter-form-box">
+        <form class="layui-form">
+            <div class="layui-form-item" style="margin-bottom: 0;">
+                <div class="layui-inline">
+                    <label class="layui-form-label">服务类型：</label>
+                    <div class="layui-input-inline" style="width: 160px;">
+                        <select name="service_type">
+                            <option value="">全部类型</option><option value="1">社保办理</option><option value="2">医疗卫生</option><option value="3">公积金</option><option value="4">企业开办</option>
+                        </select>
+                    </div>
+                </div>
+                <div class="layui-inline">
+                    <label class="layui-form-label">时间周期：</label>
+                    <div class="layui-input-inline" style="width: 160px;">
+                        <select name="time_period">
+                            <option value="week">近一周</option><option value="month" selected>近一月</option><option value="quarter">近一季度</option><option value="year">近一年</option>
+                        </select>
+                    </div>
+                </div>
+                <div class="layui-inline">
+                    <label class="layui-form-label">所属区域：</label>
+                    <div class="layui-input-inline" style="width: 160px;">
+                        <select name="region">
+                            <option value="">全市</option><option value="cy">朝阳区</option><option value="hd">海淀区</option><option value="dc">东城区</option>
+                        </select>
+                    </div>
+                </div>
+                <div class="layui-inline" style="margin-left: 10px;">
+                    <button class="layui-btn btn-query" lay-submit lay-filter="data-search"><i class="layui-icon layui-icon-search"></i> 查询</button>
+                    <button type="reset" class="layui-btn btn-reset">重置</button>
+                </div>
+            </div>
+        </form>
+    </div>
+</div>
+
+<div class="chart-grid">
+    <div class="card chart-card">
+        <div class="loading-mask"><i class="layui-icon layui-icon-loading layui-anim layui-anim-rotate layui-anim-loop" style="font-size: 32px; color: var(--gov-primary);"></i></div>
+        <div class="chart-header">
+            <div class="chart-title">办件量趋势分析</div><i class="layui-icon layui-icon-screen-full btn-zoom" onclick="zoomChart('trend')" title="全屏查看"></i>
+        </div>
+        <div id="chart-trend" class="chart-body"></div>
+    </div>
+    <div class="card chart-card">
+        <div class="loading-mask"><i class="layui-icon layui-icon-loading layui-anim layui-anim-rotate layui-anim-loop" style="font-size: 32px; color: var(--gov-primary);"></i></div>
+        <div class="chart-header">
+            <div class="chart-title">服务类型分布占比</div><i class="layui-icon layui-icon-screen-full btn-zoom" onclick="zoomChart('type')" title="全屏查看"></i>
+        </div>
+        <div id="chart-type" class="chart-body"></div>
+    </div>
+    <div class="card chart-card">
+        <div class="loading-mask"><i class="layui-icon layui-icon-loading layui-anim layui-anim-rotate layui-anim-loop" style="font-size: 32px; color: var(--gov-primary);"></i></div>
+        <div class="chart-header">
+            <div class="chart-title">各区域办件量对比</div><i class="layui-icon layui-icon-screen-full btn-zoom" onclick="zoomChart('region')" title="全屏查看"></i>
+        </div>
+        <div id="chart-region" class="chart-body"></div>
+    </div>
+    <div class="card chart-card">
+        <div class="loading-mask"><i class="layui-icon layui-icon-loading layui-anim layui-anim-rotate layui-anim-loop" style="font-size: 32px; color: var(--gov-primary);"></i></div>
+        <div class="chart-header">
+            <div class="chart-title">政务服务效率指数</div><i class="layui-icon layui-icon-screen-full btn-zoom" onclick="zoomChart('efficiency')" title="全屏查看"></i>
+        </div>
+        <div id="chart-efficiency" class="chart-body"></div>
+    </div>
+</div>
+
+<div class="card table-card">
+    <div class="table-toolbar">
+        <div class="table-title">数据详情列表</div>
+        <button class="layui-btn layui-btn-sm layui-btn-primary" style="border-color: var(--gov-primary); color: var(--gov-primary); background: #f0f5ff;"><i class="layui-icon layui-icon-export"></i> 导出数据</button>
+    </div>
+    <table class="layui-hide" id="dataTable" lay-filter="dataTable"></table>
+</div>
+
+<script src="layui/layui.js"></script>
+<script src="ai.js" onerror="console.log('AI module loaded')"></script>
+<script>
+    layui.use(['form', 'table', 'layer'], function(){
+        var form = layui.form, table = layui.table, layer = layui.layer, $ = layui.$;
+        var charts = {}; // 集中管理图表实例
+
+        if($(window).width() > 768) $('#filter-form-box').show();
+        $('#mobile-filter-toggle').on('click', function(){
+            $('#filter-form-box').toggleClass('show');
+            $('#filter-icon').toggleClass('layui-icon-down layui-icon-up');
+        });
+
+        // 数据获取逻辑 (保持原逻辑不变)
+        function getDataSource() {
+            var apps = JSON.parse(localStorage.getItem('gov_applications') || '[]');
+            if (apps.length === 0) {
+                return {
+                    trendX: ['周一', '周二', '周三', '周四', '周五', '周六', '周日'],
+                    trendY: [120, 132, 101, 134, 190, 230, 210],
+                    pie: [{ value: 1048, name: '社保办理' }, { value: 735, name: '医疗卫生' }, { value: 580, name: '公积金' }, { value: 484, name: '企业开办' }, { value: 300, name: '其他' }],
+                    table: [{id: 1001, serviceName: '城镇职工基本养老保险关系转移接续', type: '社保办理', volume: 523, duration: 1.5, satisfaction: 98.5}, {id: 1002, serviceName: '异地就医备案', type: '医疗卫生', volume: 412, duration: 0.5, satisfaction: 99.0}]
+                };
+            }
+
+            var typeMap = {}, dateMap = {}, trendX = [];
+            var today = new Date();
+            for(var i=6; i>=0; i--) {
+                var d = new Date(today.getTime() - i * 86400000);
+                var key = (d.getMonth()+1) + '-' + d.getDate();
+                trendX.push(key); dateMap[key] = 0;
+            }
+
+            apps.forEach(app => {
+                typeMap[app.service.replace(' - 在线办理', '')] = (typeMap[app.service] || 0) + 1;
+                var d = new Date(app.applyTime);
+                var key = (d.getMonth()+1) + '-' + d.getDate();
+                if(dateMap[key] !== undefined) dateMap[key]++;
+            });
+
+            return {
+                trendX: trendX, trendY: trendX.map(k => dateMap[k]),
+                pie: Object.keys(typeMap).map(k => ({ name: k, value: typeMap[k] })),
+                table: apps.map(app => ({ id: app.id, serviceName: app.service, type: '综合业务', volume: 1, duration: app.status===0?'-':'1.0', satisfaction: app.rating?(app.rating*20):'-', status: app.status }))
+            };
+        }
+
+        function renderCharts() {
+            var data = getDataSource();
+            // 优化配色，与主题一致
+            var colorPalette = ['#1890ff', '#52c41a', '#fa8c16', '#722ed1', '#eb2f96', '#13c2c2'];
+
+            charts.trend = echarts.init(document.getElementById('chart-trend'));
+            charts.trend.setOption({
+                color: colorPalette, tooltip: { trigger: 'axis' },
+                grid: { left: '3%', right: '4%', bottom: '3%', top:'10%', containLabel: true },
+                xAxis: { type: 'category', boundaryGap: false, data: data.trendX }, yAxis: { type: 'value' },
+                series: [{ name: '办件量', type: 'line', smooth: true, areaStyle: { opacity: 0.1, color: '#1890ff' }, data: data.trendY, itemStyle: { color: '#1890ff' } }]
+            });
+
+            charts.type = echarts.init(document.getElementById('chart-type'));
+            charts.type.setOption({
+                color: colorPalette, tooltip: { trigger: 'item' }, legend: { bottom: '0%', left: 'center' },
+                series: [{
+                    name: '服务类型', type: 'pie', radius: ['40%', '70%'],
+                    itemStyle: { borderRadius: 10, borderColor: '#fff', borderWidth: 2 },
+                    data: data.pie
+                }]
+            });
+
+            charts.region = echarts.init(document.getElementById('chart-region'));
+            charts.region.setOption({
+                color: ['#52c41a'], tooltip: { trigger: 'axis', axisPointer: { type: 'shadow' } }, grid: { left: '3%', right: '4%', bottom: '3%', containLabel: true },
+                xAxis: { type: 'value' }, yAxis: { type: 'category', data: ['朝阳区', '海淀区', '东城区', '西城区', '丰台区'] },
+                series: [{ name: '办件量', type: 'bar', barWidth: '60%', data: [18203, 23489, 29034, 104970, 131744], itemStyle: { borderRadius: [0, 4, 4, 0] } }]
+            });
+
+            charts.efficiency = echarts.init(document.getElementById('chart-efficiency'));
+            charts.efficiency.setOption({
+                color: colorPalette, tooltip: {},
+                radar: { indicator: [ { name: '办理时效', max: 100 }, { name: '好评率', max: 100 }, { name: '响应速度', max: 100 }, { name: '材料精简度', max: 100 }, { name: '流程透明度', max: 100 } ], center: ['50%', '55%'] },
+                series: [{ name: '效率指标', type: 'radar', data: [ { value: [90, 95, 85, 80, 92], name: '本月指数' }, { value: [80, 90, 75, 70, 85], name: '上月指数' } ] }]
+            });
+
+            table.render({
+                elem: '#dataTable', data: data.table, page: true, limit: 5, skin: 'line', even: true,
+                cols: [[
+                    {field: 'id', title: 'ID/流水号', width: 150, sort: true, fixed: 'left'},
+                    {field: 'serviceName', title: '服务名称', minWidth: 200},
+                    {field: 'type', title: '类型', width: 120},
+                    {field: 'volume', title: '办件量', width: 100},
+                    {field: 'satisfaction', title: '满意度', width: 120, templet: d => d.satisfaction !== '-' ? '<span style="color: #52c41a; font-weight:bold;">'+ d.satisfaction +'%</span>' : '-'},
+                    {field: 'status', title: '状态', width: 100, templet: d => (d.status === 3 || d.status === 1) ? '<span class="layui-badge-dot layui-bg-green"></span> 完成' : '<span class="layui-badge-dot layui-bg-orange"></span> 进行中'}
+                ]]
+            });
+        }
+        renderCharts();
+
+        var resizeTimer;
+        window.onresize = function() {
+            clearTimeout(resizeTimer);
+            resizeTimer = setTimeout(function() {
+                Object.values(charts).forEach(c => c.resize());
+            }, 100);
+        };
+
+        window.zoomChart = function(type) { layer.msg('全屏查看模式 (' + type + ')', {icon: 16, time: 1000}); };
+        window.generateReport = function() {
+            var load = layer.load(2);
+            setTimeout(() => { layer.close(load); layer.confirm('《2025年度政务数据分析报告.pdf》已生成，是否下载？', {icon: 1, title: '报告生成成功'}, i => { layer.close(i); layer.msg('已开始下载...', {icon: 1}); }); }, 1500);
+        };
+
+        form.on('submit(data-search)', function(data){
+            $('.loading-mask').css('display', 'flex');
+            setTimeout(() => {
+                $('.loading-mask').hide();
+                charts.trend.setOption({ series: [{ data: Array.from({length: 7}, () => Math.floor(Math.random() * 200) + 50) }] });
+                if(typeof recordLog === 'function') recordLog('QUERY', '数据分析查询: ' + JSON.stringify(data.field));
+                layer.msg('数据分析已根据条件更新', {icon: 1});
+            }, 800);
+            return false;
+        });
+    });
+</script>
+</body>
+</html>

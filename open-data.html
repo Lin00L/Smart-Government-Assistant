@@ -1,0 +1,309 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>数据开放平台 - 数字赋能</title>
+    <link rel="stylesheet" href="layui/css/layui.css">
+    <script src="echarts.min.js"></script>
+    <style>
+        :root {
+            /* 统一配色变量 */
+            --gov-primary: #1890ff;
+            --gov-primary-dark: #096dd9;
+            --gov-bg: #f0f2f5;
+            --gov-white: #ffffff;
+            --text-main: #000000d9;
+            --text-secondary: #00000073;
+            --border-color: #f0f0f0;
+            --card-shadow: 0 1px 2px -2px rgba(0,0,0,0.16), 0 3px 6px 0 rgba(0,0,0,0.12), 0 5px 12px 4px rgba(0,0,0,0.09);
+        }
+
+        body {
+            background: var(--gov-bg);
+            font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, "Helvetica Neue", Arial, sans-serif;
+            margin: 0; padding: 0;
+            color: var(--text-main);
+        }
+
+        /* 科技感头部 */
+        .data-header {
+            background: linear-gradient(135deg, #001529 0%, #003a8c 100%);
+            color: #fff;
+            padding: 80px 0;
+            position: relative; overflow: hidden;
+            box-shadow: 0 2px 8px rgba(0,0,0,0.15);
+        }
+        /* 头部背景装饰 */
+        .data-header::before {
+            content: ''; position: absolute; left: 0; top: 0; width: 100%; height: 100%;
+            background-image: radial-gradient(rgba(255,255,255,0.1) 1px, transparent 1px);
+            background-size: 30px 30px; opacity: 0.3;
+        }
+        .data-header::after {
+            content: ''; position: absolute; right: -100px; top: -100px; width: 500px; height: 500px;
+            background: radial-gradient(circle, rgba(24, 144, 255, 0.2) 0%, rgba(0,0,0,0) 70%);
+            border-radius: 50%;
+        }
+
+        .container { width: 1200px; max-width: 95%; margin: 0 auto; position: relative; z-index: 10; }
+
+        .header-title { font-size: 42px; font-weight: 700; margin: 0 0 16px; letter-spacing: 1px; }
+        .header-desc { font-size: 16px; opacity: 0.85; margin: 0; max-width: 640px; line-height: 1.6; font-weight: 300; }
+
+        .stats-row { display: flex; gap: 60px; margin-top: 48px; }
+        .stat-item h3 { font-size: 36px; font-weight: 700; color: #69c0ff; margin: 0; font-family: 'Roboto', sans-serif; }
+        .stat-item p { opacity: 0.7; font-size: 14px; margin: 6px 0 0; }
+
+        /* 搜索框优化 */
+        .search-wrap { margin-top: 40px; display: flex; max-width: 600px; box-shadow: 0 8px 24px rgba(0,0,0,0.2); border-radius: 4px; overflow: hidden; }
+        .search-input {
+            flex: 1; height: 52px; border: none; padding-left: 20px; outline: none;
+            font-size: 16px; background: #fff;
+        }
+        .search-btn {
+            width: 120px; background: var(--gov-primary); color: #fff; border: none;
+            font-weight: 600; cursor: pointer; font-size: 16px; transition: background 0.3s;
+        }
+        .search-btn:hover { background: var(--gov-primary-dark); }
+
+        /* 分类导航 */
+        .category-bar { display: flex; gap: 16px; margin: 32px 0; flex-wrap: wrap; }
+        .cat-btn {
+            padding: 8px 20px; background: #fff; border: 1px solid #d9d9d9;
+            border-radius: 20px; cursor: pointer; transition: all 0.3s;
+            display: flex; align-items: center; color: var(--text-main); font-size: 14px;
+        }
+        .cat-btn i { margin-right: 8px; color: var(--text-secondary); }
+        .cat-btn:hover { border-color: var(--gov-primary); color: var(--gov-primary); }
+        .cat-btn:hover i { color: var(--gov-primary); }
+        .cat-btn.active { background: var(--gov-primary); color: #fff; border-color: var(--gov-primary); box-shadow: 0 2px 8px rgba(24, 144, 255, 0.3); }
+        .cat-btn.active i { color: #fff; }
+
+        /* 数据集列表区域 */
+        .data-layout { display: flex; gap: 24px; margin-bottom: 40px; }
+        .data-list { flex: 1; }
+
+        .data-card {
+            background: #fff; padding: 24px; border-radius: 8px; margin-bottom: 16px;
+            border: 1px solid #f0f0f0; transition: all 0.3s; cursor: pointer; position: relative;
+        }
+        .data-card:hover { border-color: transparent; box-shadow: var(--card-shadow); transform: translateY(-2px); }
+        .data-card.active { border-color: var(--gov-primary); background: #f0f9ff; }
+
+        .data-title { font-weight: 600; font-size: 18px; margin-bottom: 8px; color: #1f2937; }
+        .data-desc { color: var(--text-secondary); font-size: 14px; line-height: 1.6; margin-bottom: 16px; }
+
+        .data-tags span {
+            background: #f5f5f5; color: var(--text-secondary); padding: 2px 8px;
+            border-radius: 4px; font-size: 12px; margin-right: 8px; border: 1px solid #d9d9d9;
+        }
+
+        .download-count {
+            position: absolute; right: 24px; top: 24px; color: var(--text-secondary); font-size: 13px;
+            display: flex; align-items: center;
+        }
+        .download-count i { margin-right: 4px; font-size: 16px; }
+
+        /* 预览侧边栏 */
+        .preview-sidebar {
+            width: 380px; background: #fff; padding: 24px; border-radius: 8px;
+            box-shadow: var(--card-shadow); border: 1px solid #f0f0f0;
+            height: fit-content; position: sticky; top: 24px;
+        }
+
+        .preview-title {
+            font-weight: 600; font-size: 16px; margin-bottom: 16px; color: #1f2937;
+            display: flex; align-items: center;
+        }
+        .preview-title::before {
+            content: ''; display: inline-block; width: 4px; height: 16px;
+            background: var(--gov-primary); margin-right: 10px; border-radius: 2px;
+        }
+
+        .chart-box {
+            width: 100%; height: 260px; background: #fafafa;
+            border-radius: 4px; margin-bottom: 24px; border: 1px solid #f0f0f0;
+        }
+
+        .api-box {
+            background: #282c34; color: #abb2bf; padding: 16px; border-radius: 6px;
+            font-family: 'Consolas', 'Monaco', monospace; font-size: 13px;
+            margin-bottom: 24px; word-break: break-all; line-height: 1.5;
+            position: relative;
+        }
+        .api-box::before {
+            content: 'HTTP'; position: absolute; right: 10px; top: 5px;
+            font-size: 10px; color: #5c6370;
+        }
+
+        .btn-group { display: flex; gap: 12px; }
+        .layui-btn { border-radius: 4px; height: 40px; line-height: 40px; font-size: 14px; }
+        .layui-btn-normal { background-color: var(--gov-primary); }
+        .layui-btn-primary:hover { border-color: var(--gov-primary); color: var(--gov-primary); }
+
+        @media screen and (max-width: 900px) {
+            .data-layout { flex-direction: column; }
+            .preview-sidebar { width: auto; position: static; }
+            .stats-row { gap: 30px; }
+            .header-title { font-size: 32px; }
+        }
+    </style>
+</head>
+<body>
+
+<div class="data-header">
+    <div class="container">
+        <h1 class="header-title">政府数据开放平台</h1>
+        <p class="header-desc">
+            提供全面、准确、及时的政府公共数据，赋能数字经济，激发社会创新。
+            我们致力于构建开放、共享、协同的数据生态体系。
+        </p>
+
+        <div class="stats-row">
+            <div class="stat-item">
+                <h3>3,842</h3>
+                <p>开放数据集 (个)</p>
+            </div>
+            <div class="stat-item">
+                <h3>1.2亿</h3>
+                <p>数据调用量 (次)</p>
+            </div>
+            <div class="stat-item">
+                <h3>582</h3>
+                <p>入驻开发者 (人)</p>
+            </div>
+        </div>
+
+        <div class="search-wrap">
+            <input type="text" class="search-input" placeholder="搜索数据集，如：人口、GDP、公交线路">
+            <button class="search-btn">搜 索</button>
+        </div>
+    </div>
+</div>
+
+<div class="container">
+    <div class="category-bar">
+        <div class="cat-btn active"><i class="layui-icon layui-icon-app"></i> 全部</div>
+        <div class="cat-btn"><i class="layui-icon layui-icon-chart"></i> 经济建设</div>
+        <div class="cat-btn"><i class="layui-icon layui-icon-user"></i> 民生服务</div>
+        <div class="cat-btn"><i class="layui-icon layui-icon-location"></i> 交通出行</div>
+        <div class="cat-btn"><i class="layui-icon layui-icon-read"></i> 教育科技</div>
+        <div class="cat-btn"><i class="layui-icon layui-icon-tree"></i> 环境资源</div>
+    </div>
+
+    <div class="data-layout">
+        <div class="data-list" id="dataset-list">
+            </div>
+
+        <div class="preview-sidebar">
+            <div class="preview-title">数据可视化预览</div>
+            <div id="chart-container" class="chart-box"></div>
+
+            <div class="preview-title">API 调用示例</div>
+            <div class="api-box">
+                <span style="color:#c678dd;">GET</span> /api/v1/datasets/<span id="api-id" style="color:#e06c75;">1001</span>/data<br>
+                <span style="color:#d19a66;">Authorization:</span> Bearer YOUR_TOKEN
+            </div>
+
+            <div class="btn-group">
+                <button class="layui-btn layui-btn-normal layui-btn-fluid" onclick="layui.layer.msg('正在下载 CSV 文件...', {icon: 1})">
+                    <i class="layui-icon layui-icon-download-circle"></i> 下载 CSV
+                </button>
+                <button class="layui-btn layui-btn-primary layui-btn-fluid" onclick="layui.layer.msg('正在下载 JSON 文件...', {icon: 1})">
+                    <i class="layui-icon layui-icon-code-circle"></i> JSON
+                </button>
+            </div>
+        </div>
+    </div>
+</div>
+
+<script src="layui/layui.js"></script>
+<script src="ai.js" onerror="console.log('AI module loaded')"></script>
+<script>
+    layui.use(['layer'], function(){
+        var layer = layui.layer;
+        var $ = layui.$;
+
+        var datasets = [
+            {id: '1001', title: '2023年全市各区GDP统计', desc: '包含全市12个区的生产总值、增长率及产业结构数据，按季度更新。', tags: ['经济', '统计', 'GDP'], downloads: 1204, type: 'bar'},
+            {id: '1002', title: '全市公交线路站点分布', desc: '包含所有公交线路的走向、站点经纬度坐标、首末班车时间。', tags: ['交通', 'GIS'], downloads: 856, type: 'map'},
+            {id: '1003', title: '近五年常住人口年龄结构', desc: '按年度统计的常住人口数量、年龄分布、性别比例数据。', tags: ['人口', '民生'], downloads: 2341, type: 'pie'},
+            {id: '1004', title: '中小学教育资源分布', desc: '全市中小学学校名称、地址、师资力量及在校学生人数统计。', tags: ['教育', '学校'], downloads: 567, type: 'bar'}
+        ];
+
+        // 渲染列表 (保持原逻辑)
+        var html = '';
+        datasets.forEach((d, i) => {
+            var tagsHtml = d.tags.map(t => `<span>${t}</span>`).join('');
+            html += `
+            <div class="data-card ${i===0?'active':''}" onclick="selectDataset(${i})">
+                <div class="data-title">${d.title}</div>
+                <div class="data-desc">${d.desc}</div>
+                <div class="data-tags">${tagsHtml}</div>
+                <div class="download-count"><i class="layui-icon layui-icon-download-circle"></i> ${d.downloads}</div>
+            </div>`;
+        });
+        $('#dataset-list').html(html);
+
+        // ECharts 初始化
+        var myChart = echarts.init(document.getElementById('chart-container'));
+
+        window.selectDataset = function(index) {
+            $('.data-card').removeClass('active');
+            $('.data-card').eq(index).addClass('active');
+
+            var d = datasets[index];
+            $('#api-id').text(d.id);
+
+            // 更新图表 (模拟不同类型的图)
+            myChart.clear();
+            var option = {};
+
+            // 适配主题色
+            var primaryColor = '#1890ff';
+
+            if(d.type === 'bar') {
+                option = {
+                    title: { text: '数据预览', left: 'center', textStyle:{fontSize:14, color:'#666'} },
+                    tooltip: {},
+                    xAxis: { data: ["A区","B区","C区","D区","E区"] },
+                    yAxis: {},
+                    grid: { top: 40, bottom: 20, left: 30, right: 10 },
+                    series: [{ type: 'bar', data: [520, 200, 360, 100, 450], itemStyle: {color: primaryColor, borderRadius: [4, 4, 0, 0]} }]
+                };
+            } else if(d.type === 'pie') {
+                option = {
+                    title: { text: '年龄分布', left: 'center', textStyle:{fontSize:14, color:'#666'} },
+                    tooltip: { trigger: 'item' },
+                    series: [{
+                        type: 'pie',
+                        radius: ['40%', '70%'], // 环形图更现代
+                        itemStyle: { borderRadius: 5, borderColor: '#fff', borderWidth: 2 },
+                        data: [
+                            { value: 1048, name: '0-14岁', itemStyle: {color: '#1890ff'} },
+                            { value: 735, name: '15-60岁', itemStyle: {color: '#52c41a'} },
+                            { value: 580, name: '60岁以上', itemStyle: {color: '#fa8c16'} }
+                        ]
+                    }]
+                };
+            } else {
+                // 默认占位
+                option = {
+                    title: { text: '暂无预览图表', left: 'center', top: 'center', textStyle:{color:'#999'} }
+                };
+            }
+            myChart.setOption(option);
+        };
+
+        // 默认选中第一个
+        selectDataset(0);
+
+        // 窗口 resize
+        window.onresize = function() {
+            myChart.resize();
+        };
+    });
+</script>
+</body>
+</html>

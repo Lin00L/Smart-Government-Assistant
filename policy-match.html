@@ -1,0 +1,314 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+    <meta charset="UTF-8">
+    <title>政策计算器 - 免申即享</title>
+    <link rel="stylesheet" href="layui/css/layui.css">
+    <style>
+        :root {
+            /* 统一配色变量 */
+            --gov-primary: #1890ff;
+            --gov-primary-dark: #096dd9;
+            --gov-bg: #f0f2f5;
+            --gov-white: #ffffff;
+            --text-main: #000000d9;
+            --text-secondary: #00000073;
+            --success-color: #52c41a;
+            --warning-color: #fa8c16;
+            --card-shadow: 0 1px 2px -2px rgba(0,0,0,0.16), 0 3px 6px 0 rgba(0,0,0,0.12), 0 5px 12px 4px rgba(0,0,0,0.09);
+        }
+
+        body {
+            background-color: var(--gov-bg);
+            /* 背景纹理 */
+            background-image: radial-gradient(#e6f7ff 1px, transparent 1px);
+            background-size: 20px 20px;
+            margin: 0; padding: 24px;
+            font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, "Helvetica Neue", Arial, sans-serif;
+            color: var(--text-main);
+        }
+
+        /* 顶部导航 */
+        .top-nav {
+            height: 64px;
+            background: linear-gradient(90deg, #001529 0%, #003a8c 100%);
+            display: flex; align-items: center; justify-content: space-between;
+            padding: 0 24px; color: #fff;
+            box-shadow: 0 2px 8px rgba(0,0,0,0.15);
+            margin-bottom: 24px; border-radius: 4px;
+        }
+        .nav-title { font-size: 20px; font-weight: 600; display: flex; align-items: center; letter-spacing: 1px; }
+        .nav-link {
+            color: rgba(255,255,255,0.85); text-decoration: none; font-size: 14px;
+            display: flex; align-items: center; transition: all 0.3s;
+        }
+        .nav-link:hover { color: #fff; opacity: 1; transform: translateX(-2px); }
+
+        .breadcrumb-container {
+            background: #fff; padding: 16px 24px; margin-bottom: 24px;
+            border-radius: 4px; border: 1px solid #f0f0f0;
+            display: flex; align-items: center;
+        }
+        .layui-breadcrumb a { color: var(--text-secondary) !important; }
+        .layui-breadcrumb a:hover { color: var(--gov-primary) !important; }
+        .layui-breadcrumb cite { color: var(--text-main); font-weight: 500; }
+
+        .match-container {
+            max-width: 1200px; margin: 0 auto;
+            display: flex; gap: 24px;
+            align-items: flex-start;
+        }
+
+        /* 左侧选择区 */
+        .selector-box {
+            flex: 1;
+            background: #fff;
+            padding: 40px;
+            border-radius: 8px;
+            box-shadow: var(--card-shadow);
+            border: 1px solid #f0f0f0;
+        }
+
+        .section-title { font-size: 24px; font-weight: 600; color: #1f2937; margin-bottom: 32px; letter-spacing: 0.5px; }
+
+        .tag-group { margin-bottom: 32px; }
+        .tag-title {
+            font-weight: 600; margin-bottom: 12px; font-size: 16px; color: #1f2937;
+            display: flex; align-items: center;
+        }
+        .tag-title::before {
+            content: ''; display: inline-block; width: 4px; height: 16px;
+            background: var(--gov-primary); margin-right: 10px; border-radius: 2px;
+        }
+
+        .tag-options { display: flex; flex-wrap: wrap; gap: 12px; }
+
+        .tag-btn {
+            display: inline-flex; align-items: center; justify-content: center;
+            padding: 8px 20px; border: 1px solid #d9d9d9; border-radius: 20px;
+            cursor: pointer; transition: all 0.3s; color: var(--text-main); font-size: 14px;
+            background: #fff;
+        }
+        .tag-btn:hover { border-color: var(--gov-primary); color: var(--gov-primary); box-shadow: 0 2px 8px rgba(24, 144, 255, 0.15); }
+        .tag-btn.active {
+            background: var(--gov-primary); color: #fff; border-color: var(--gov-primary);
+            box-shadow: 0 4px 10px rgba(24, 144, 255, 0.3); font-weight: 500;
+        }
+
+        /* 右侧结果区 */
+        .result-box {
+            width: 380px;
+            background: linear-gradient(135deg, #003a8c 0%, #1890ff 100%);
+            border-radius: 12px;
+            color: #fff;
+            padding: 40px;
+            position: relative;
+            overflow: hidden;
+            box-shadow: 0 10px 30px rgba(24, 144, 255, 0.4);
+            border: 1px solid rgba(255,255,255,0.1);
+        }
+
+        /* 装饰背景圆环 */
+        .result-box::before {
+            content: ''; position: absolute; width: 300px; height: 300px; border-radius: 50%;
+            background: rgba(255,255,255,0.05); top: -100px; right: -100px; pointer-events: none;
+        }
+        .result-box::after {
+            content: ''; position: absolute; width: 200px; height: 200px; border-radius: 50%;
+            background: rgba(255,255,255,0.05); bottom: -50px; left: -50px; pointer-events: none;
+        }
+
+        .result-header { font-size: 18px; opacity: 0.9; margin-bottom: 10px; font-weight: 300; }
+        .amount-box { text-align: center; margin: 32px 0 40px; position: relative; z-index: 1; }
+        .amount-currency { font-size: 24px; vertical-align: top; margin-right: 4px; font-weight: 300; }
+        .amount-num { font-size: 64px; font-weight: 700; line-height: 1; text-shadow: 0 4px 10px rgba(0,0,0,0.2); font-family: 'Roboto', sans-serif; }
+
+        .policy-label { font-size: 14px; font-weight: 600; margin-bottom: 12px; opacity: 0.9; }
+        .policy-list {
+            background: rgba(255,255,255,0.15); border-radius: 8px;
+            padding: 16px; margin-top: 10px; font-size: 14px;
+            backdrop-filter: blur(10px); border: 1px solid rgba(255,255,255,0.2);
+            min-height: 120px;
+        }
+        .policy-item {
+            display: flex; justify-content: space-between; margin-bottom: 10px;
+            border-bottom: 1px solid rgba(255,255,255,0.15); padding-bottom: 10px;
+        }
+        .policy-item:last-child { border-bottom: none; margin-bottom: 0; padding-bottom: 0; }
+
+        .apply-btn {
+            width: 100%; height: 48px; border-radius: 24px; font-weight: 600; font-size: 16px;
+            background: #fa8c16; border: none; color: #fff; cursor: pointer;
+            box-shadow: 0 4px 12px rgba(250, 140, 22, 0.4); margin-top: 32px;
+            transition: all 0.3s; position: relative; z-index: 1;
+        }
+        .apply-btn:hover { background: #ffc069; transform: translateY(-2px); box-shadow: 0 6px 16px rgba(250, 140, 22, 0.5); }
+        .apply-btn:active { transform: translateY(1px); }
+
+        @media screen and (max-width: 900px) {
+            .match-container { flex-direction: column; }
+            .result-box { width: 100%; box-sizing: border-box; }
+        }
+    </style>
+</head>
+<body>
+
+<div class="top-nav">
+    <div class="nav-title">
+        <i class="layui-icon layui-icon-template-1" style="margin-right: 12px; font-size: 24px; color: #69c0ff;"></i>智能政务助手
+    </div>
+    <div>
+        <a href="index.html" class="nav-link">
+            <i class="layui-icon layui-icon-return" style="margin-right: 6px;"></i> 返回首页
+        </a>
+    </div>
+</div>
+
+<div class="breadcrumb-container">
+    <span class="layui-breadcrumb">
+        <a href="index.html">首页</a>
+        <a><cite>政策计算器</cite></a>
+    </span>
+</div>
+
+<div class="match-container">
+    <div class="selector-box">
+        <h2 class="section-title">请选择您的基本情况</h2>
+
+        <div class="tag-group">
+            <div class="tag-title">1. 学历情况</div>
+            <div class="tag-options" data-type="edu">
+                <span class="tag-btn" data-val="0">本科及以下</span>
+                <span class="tag-btn" data-val="1000">硕士研究生</span>
+                <span class="tag-btn" data-val="3000">博士研究生</span>
+            </div>
+        </div>
+
+        <div class="tag-group">
+            <div class="tag-title">2. 住房情况</div>
+            <div class="tag-options" data-type="house">
+                <span class="tag-btn active" data-val="0">自有住房</span>
+                <span class="tag-btn" data-val="500">租房 (无房证明)</span>
+                <span class="tag-btn" data-val="800">人才公寓申请</span>
+            </div>
+        </div>
+
+        <div class="tag-group">
+            <div class="tag-title">3. 就业创业</div>
+            <div class="tag-options" data-type="job">
+                <span class="tag-btn active" data-val="0">稳定就业</span>
+                <span class="tag-btn" data-val="2000">自主创业 (小微企业)</span>
+                <span class="tag-btn" data-val="5000">高新技术企业法人</span>
+            </div>
+        </div>
+
+        <div class="tag-group">
+            <div class="tag-title">4. 特殊人群</div>
+            <div class="tag-options" data-type="special">
+                <span class="tag-btn active" data-val="0">无</span>
+                <span class="tag-btn" data-val="200">应届毕业生</span>
+                <span class="tag-btn" data-val="300">退役军人</span>
+            </div>
+        </div>
+    </div>
+
+    <div class="result-box">
+        <div class="result-header">您预计可享受补贴总额</div>
+        <div class="amount-box">
+            <span class="amount-currency">￥</span>
+            <span class="amount-num" id="total-amount">0</span>
+        </div>
+
+        <div class="policy-label">匹配到的政策：</div>
+        <div class="policy-list" id="policy-details">
+            <div style="text-align: center; opacity: 0.8; padding-top: 40px;">暂无匹配政策</div>
+        </div>
+
+        <button class="apply-btn" onclick="oneKeyApply()">一键申领</button>
+    </div>
+</div>
+
+<script src="layui/layui.js"></script>
+<script src="ai.js" onerror="console.log('AI module loaded')"></script>
+<script>
+    layui.use(['layer', 'element'], function(){
+        var $ = layui.$;
+        var layer = layui.layer;
+        var element = layui.element;
+
+        // 标签选择逻辑 (保持原逻辑)
+        $('.tag-btn').on('click', function(){
+            $(this).siblings().removeClass('active');
+            $(this).addClass('active');
+            calculate();
+        });
+
+        function calculate() {
+            var total = 0;
+            var detailsHtml = '';
+
+            // 遍历所有选中的标签
+            $('.tag-btn.active').each(function(){
+                var val = parseInt($(this).data('val'));
+                var text = $(this).text();
+
+                if(val > 0) {
+                    total += val;
+                    detailsHtml += `
+                    <div class="policy-item">
+                        <span>${text}补贴</span>
+                        <span>+${val}元/月</span>
+                    </div>`;
+                }
+            });
+
+            // 动画数字跳动效果
+            $({countNum: $('#total-amount').text()}).animate({countNum: total}, {
+                duration: 500,
+                easing: 'swing',
+                step: function() {
+                    $('#total-amount').text(Math.floor(this.countNum));
+                },
+                complete: function() {
+                    $('#total-amount').text(this.countNum);
+                }
+            });
+
+            if(detailsHtml === '') detailsHtml = '<div style="text-align: center; opacity: 0.8; padding-top: 40px;">暂无匹配政策</div>';
+            $('#policy-details').html(detailsHtml);
+        }
+
+        window.oneKeyApply = function() {
+            var total = $('#total-amount').text();
+            if(total == '0') return layer.msg('暂无符合条件的补贴可申领', {icon: 0, anim: 6});
+
+            layer.confirm('系统检测到您符合 <strong style="color:#fa8c16;">' + total + '元/月</strong> 的补贴申领条件。<br>是否授权系统自动调取您的社保及学历数据进行申报？', {
+                title: '免申即享确认',
+                icon: 3,
+                btn: ['确认授权并申报', '再看看']
+            }, function(){
+                var load = layer.load(2, {shade: 0.3});
+                setTimeout(() => {
+                    layer.close(load);
+                    layer.msg('申报成功！补贴将发放至您的社保卡金融账户', {icon: 1, time: 3000});
+
+                    // 记录到“我的办件”
+                    var apps = JSON.parse(localStorage.getItem('gov_applications') || '[]');
+                    var currentUser = JSON.parse(localStorage.getItem('gov_current_user') || '{}');
+
+                    apps.unshift({
+                        id: 'SUB' + new Date().getTime(),
+                        service: '人才安居补贴(免申即享)',
+                        applicant: currentUser.username || '访客',
+                        applyTime: new Date().toLocaleString(),
+                        status: 1, // 直接通过
+                        remarks: '系统智能匹配申报'
+                    });
+                    localStorage.setItem('gov_applications', JSON.stringify(apps));
+                }, 1500);
+            });
+        }
+    });
+</script>
+</body>
+</html>

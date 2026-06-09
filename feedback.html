@@ -1,0 +1,329 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>反馈中心 - 智能政务助手</title>
+    <link rel="stylesheet" href="layui/css/layui.css">
+    <style>
+        :root {
+            /* 统一配色变量 */
+            --gov-primary: #1890ff;
+            --gov-primary-dark: #096dd9;
+            --gov-bg: #f0f2f5;
+            --gov-white: #ffffff;
+            --success-color: #52c41a;
+            --warning-color: #fa8c16;
+            --text-main: #000000d9;
+            --text-secondary: #00000073;
+            --border-color: #d9d9d9;
+            --card-shadow: 0 1px 2px -2px rgba(0,0,0,0.16), 0 3px 6px 0 rgba(0,0,0,0.12), 0 5px 12px 4px rgba(0,0,0,0.09);
+        }
+
+        body {
+            font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, "Helvetica Neue", Arial, sans-serif;
+            background-color: var(--gov-bg);
+            background-image: radial-gradient(#e6f7ff 1px, transparent 1px);
+            background-size: 20px 20px;
+            margin: 0; padding: 24px;
+            color: var(--text-main);
+            box-sizing: border-box;
+        }
+
+        .container { max-width: 1000px; margin: 0 auto; }
+
+        /* 顶部导航 */
+        .top-nav {
+            height: 64px;
+            background: linear-gradient(90deg, #001529 0%, #003a8c 100%);
+            display: flex; align-items: center; justify-content: space-between;
+            padding: 0 24px; color: #fff;
+            box-shadow: 0 2px 8px rgba(0,0,0,0.15);
+            margin-bottom: 24px; border-radius: 4px;
+        }
+        .nav-title { font-size: 20px; font-weight: 600; display: flex; align-items: center; letter-spacing: 1px; }
+        .nav-link {
+            color: rgba(255,255,255,0.85); text-decoration: none; font-size: 14px;
+            display: flex; align-items: center; transition: all 0.3s;
+        }
+        .nav-link:hover { color: #fff; opacity: 1; transform: translateX(-2px); }
+
+        /* 卡片 */
+        .card {
+            background: var(--gov-white); border-radius: 8px;
+            box-shadow: var(--card-shadow);
+            padding: 32px; margin-bottom: 24px;
+            border: 1px solid #f0f0f0;
+        }
+
+        .section-title {
+            font-size: 18px; font-weight: 600; color: #1f2937;
+            margin-bottom: 24px;
+            display: flex; align-items: center;
+            padding-bottom: 16px; border-bottom: 1px solid #f0f0f0;
+        }
+        .section-title i { color: var(--gov-primary); font-size: 20px; margin-right: 10px; }
+
+        /* 表单控件优化 */
+        .layui-form-label { width: 80px; padding: 9px 15px; color: var(--text-main); }
+        .layui-input-block { margin-left: 110px; }
+        .layui-input, .layui-select, .layui-textarea {
+            border-radius: 4px; border-color: var(--border-color);
+        }
+        .layui-input:hover, .layui-select:hover, .layui-textarea:hover { border-color: var(--gov-primary); }
+        .layui-input:focus, .layui-select:focus, .layui-textarea:focus { border-color: var(--gov-primary); box-shadow: 0 0 0 2px rgba(24, 144, 255, 0.2); }
+
+        /* 上传区域优化 */
+        .upload-area {
+            border: 1px dashed var(--border-color); border-radius: 6px;
+            padding: 32px; text-align: center; cursor: pointer;
+            transition: all 0.3s; background: #fafafa;
+        }
+        .upload-area:hover { border-color: var(--gov-primary); background: #f0f9ff; }
+        .upload-icon { font-size: 32px; color: #999; margin-bottom: 12px; transition: color 0.3s; }
+        .upload-area:hover .upload-icon { color: var(--gov-primary); }
+        .upload-text { font-size: 14px; color: var(--text-secondary); }
+
+        .preview-list { display: flex; gap: 12px; margin-top: 16px; }
+        .preview-item {
+            width: 80px; height: 80px; border-radius: 4px; overflow: hidden;
+            border: 1px solid #f0f0f0; box-shadow: 0 2px 4px rgba(0,0,0,0.05);
+        }
+        .preview-item img { width: 100%; height: 100%; object-fit: cover; }
+
+        .btn-submit {
+            background-color: var(--gov-primary); color: #fff;
+            padding: 0 40px; height: 40px; line-height: 40px; font-size: 15px;
+            border: none; cursor: pointer; transition: all 0.3s; border-radius: 4px;
+            box-shadow: 0 2px 0 rgba(0,0,0,0.045);
+        }
+        .btn-submit:hover { background-color: var(--gov-primary-dark); box-shadow: 0 4px 10px rgba(24, 144, 255, 0.3); }
+
+        /* 状态徽章优化 */
+        .status-badge { display: inline-block; padding: 4px 8px; border-radius: 4px; font-size: 12px; line-height: 1; }
+        .status-wait { background: #f5f5f5; color: rgba(0,0,0,0.45); border: 1px solid #d9d9d9; }
+        .status-process { background: #e6f7ff; color: #1890ff; border: 1px solid #91d5ff; }
+        .status-done { background: #f6ffed; color: #52c41a; border: 1px solid #b7eb8f; }
+
+        /* 详情弹窗优化 */
+        .detail-dialog { padding: 24px; }
+        .detail-row { margin-bottom: 16px; display: flex; font-size: 14px; }
+        .detail-label { width: 90px; color: var(--text-secondary); flex-shrink: 0; }
+        .detail-content { flex: 1; color: var(--text-main); line-height: 1.6; font-weight: 500; }
+        .timeline-box { margin-top: 32px; padding-top: 24px; border-top: 1px dashed #e8e8e8; }
+
+        /* 自动填充按钮 */
+        .btn-autofill {
+            color: var(--gov-primary); border-color: var(--gov-primary); background: #fff;
+            transition: all 0.3s;
+        }
+        .btn-autofill:hover { background: #f0f9ff; border-color: var(--gov-primary-dark); color: var(--gov-primary-dark); }
+
+        @media screen and (max-width: 768px) {
+            body { padding: 12px; }
+            .top-nav { padding: 0 15px; height: 56px; }
+            .nav-title { font-size: 18px; }
+            .card { padding: 20px; }
+            .layui-input-block { margin-left: 0; }
+            .layui-form-label { width: auto; padding: 9px 0; text-align: left; }
+        }
+    </style>
+    <script>
+        // 主题配置 (保持原逻辑)
+        (function(){
+            var config = JSON.parse(localStorage.getItem('gov_ui_config') || '{}');
+            if(config.theme === 'gray') {
+                var style = document.createElement('style');
+                style.innerHTML = `:root { --gov-primary: #595959 !important; --gov-primary-dark: #262626 !important; } .top-nav { background: #1f1f1f !important; }`;
+                document.head.appendChild(style);
+            }
+            if(config.fontsize === 'large') { document.documentElement.style.fontSize = '18px'; document.body.classList.add('font-large'); }
+        })();
+    </script>
+</head>
+<body>
+
+<div class="top-nav">
+    <div class="nav-title">
+        <i class="layui-icon layui-icon-template-1" style="margin-right: 12px; font-size: 24px; color: #69c0ff;"></i>智能政务助手
+    </div>
+    <div>
+        <a href="index.html" class="nav-link">
+            <i class="layui-icon layui-icon-return" style="margin-right: 6px;"></i> 返回首页
+        </a>
+    </div>
+</div>
+
+<div class="container">
+    <div class="card">
+        <div class="section-title">
+            <div style="flex:1; display:flex; align-items:center;">
+                <i class="layui-icon layui-icon-edit"></i> 提交新反馈
+            </div>
+            <button type="button" class="layui-btn layui-btn-primary layui-btn-sm btn-autofill" onclick="autoFill()">
+                <i class="layui-icon layui-icon-file"></i> 引用电子证照信息
+            </button>
+        </div>
+
+        <form class="layui-form" lay-filter="feedback-form" style="margin-top: 24px;">
+            <div class="layui-row layui-col-space24">
+                <div class="layui-col-md6">
+                    <div class="layui-form-item">
+                        <label class="layui-form-label">反馈类型</label>
+                        <div class="layui-input-block">
+                            <select name="type" lay-verify="required">
+                                <option value="">请选择反馈类型</option><option value="咨询">政务咨询</option><option value="投诉">服务投诉</option><option value="建议">功能建议</option><option value="系统故障">系统故障</option>
+                            </select>
+                        </div>
+                    </div>
+                </div>
+                <div class="layui-col-md6">
+                    <div class="layui-form-item">
+                        <label class="layui-form-label">联系方式</label>
+                        <div class="layui-input-block"><input type="text" name="contact" placeholder="手机号或邮箱（选填）" class="layui-input"></div>
+                    </div>
+                </div>
+            </div>
+            <div class="layui-form-item">
+                <label class="layui-form-label">详细内容</label>
+                <div class="layui-input-block"><textarea name="content" placeholder="请详细描述您遇到的问题或建议，我们会尽快为您处理..." class="layui-textarea" style="height: 120px;" lay-verify="required"></textarea></div>
+            </div>
+            <div class="layui-form-item">
+                <label class="layui-form-label">图片上传</label>
+                <div class="layui-input-block">
+                    <div class="upload-area" id="btn-upload">
+                        <i class="layui-icon layui-icon-upload-drag upload-icon"></i>
+                        <div class="upload-text">点击或拖拽上传图片（支持 JPG/PNG，最多3张）</div>
+                    </div>
+                    <div class="preview-list" id="upload-preview"></div>
+                </div>
+            </div>
+            <div class="layui-form-item" style="text-align: right; margin-top: 32px;">
+                <button class="layui-btn btn-submit" lay-submit lay-filter="submit-feedback">
+                    <i class="layui-icon layui-icon-release" style="margin-right: 5px;"></i> 提交反馈
+                </button>
+            </div>
+        </form>
+    </div>
+
+    <div class="card">
+        <div class="section-title"><i class="layui-icon layui-icon-form"></i> 历史反馈记录</div>
+        <table class="layui-hide" id="historyTable" lay-filter="historyTable"></table>
+    </div>
+</div>
+
+<div id="detail-popup-content" style="display: none;">
+    <div class="detail-dialog">
+        <div class="detail-row"><div class="detail-label">反馈编号：</div><div class="detail-content" id="d-id"></div></div>
+        <div class="detail-row"><div class="detail-label">反馈时间：</div><div class="detail-content" id="d-time"></div></div>
+        <div class="detail-row"><div class="detail-label">反馈类型：</div><div class="detail-content" id="d-type"></div></div>
+        <div class="detail-row"><div class="detail-label">反馈内容：</div><div class="detail-content" id="d-content"></div></div>
+        <div class="timeline-box"><ul class="layui-timeline"></ul></div>
+    </div>
+</div>
+
+<script type="text/html" id="barDemo">
+    <a class="layui-btn layui-btn-xs layui-btn-primary" lay-event="detail" style="border-color: var(--gov-primary); color: var(--gov-primary);">查看详情</a>
+</script>
+<script type="text/html" id="statusTpl">
+    {{# if(d.status === 0){ }}<span class="status-badge status-wait">待处理</span>
+    {{# } else if(d.status === 1){ }}<span class="status-badge status-process">处理中</span>
+    {{# } else { }}<span class="status-badge status-done">已办结</span>{{# } }}
+</script>
+
+<script src="layui/layui.js"></script>
+<script src="ai.js" onerror="console.log('AI module loaded')"></script>
+<script>
+    var $ = layui.$;
+    window.autoFill = function() {
+        var user = JSON.parse(localStorage.getItem('gov_current_user'));
+        user ? ($('input[name="contact"]').val(user.phone), layui.layer.msg('已从电子证照库读取：姓名、手机号', {icon: 1})) : layui.layer.msg('请先登录', {icon: 0});
+    };
+
+    function recordLog(type, detail) {
+        var logs = JSON.parse(localStorage.getItem('gov_logs') || '[]');
+        var user = JSON.parse(localStorage.getItem('gov_current_user') || '{}');
+        logs.unshift({ time: new Date().toLocaleString(), operator: user.username || '访客', type: type, ip: '192.168.1.'+Math.floor(Math.random()*255), detail: detail });
+        if(logs.length > 50) logs.pop();
+        localStorage.setItem('gov_logs', JSON.stringify(logs));
+    }
+
+    layui.use(['form', 'table', 'layer', 'upload'], function(){
+        var form = layui.form, table = layui.table, layer = layui.layer, upload = layui.upload;
+        var localData = JSON.parse(localStorage.getItem('gov_feedbacks') || '[]');
+
+        upload.render({
+            elem: '#btn-upload', url: '', auto: false,
+            choose: function(obj){
+                obj.preview(function(index, file, result){ $('#upload-preview').append('<div class="preview-item"><img src="'+ result +'" class="layui-upload-img"></div>'); });
+                layer.msg('图片已选择', {icon: 1});
+            }
+        });
+
+        form.on('submit(submit-feedback)', function(data){
+            var loading = layer.load(2, {shade: 0.3});
+            setTimeout(function(){
+                layer.close(loading);
+                var newFeedback = { id: 'FB' + Date.now(), time: new Date().toLocaleString(), type: data.field.type, content: data.field.content, status: 0, result: '-' };
+                localData.unshift(newFeedback);
+                localStorage.setItem('gov_feedbacks', JSON.stringify(localData));
+
+                layer.msg('提交成功', {icon: 1, time: 2000}, function(){
+                    recordLog('SUBMIT', '用户提交了新的反馈 ID:' + newFeedback.id);
+                    table.reload('historyTable', { data: localData });
+                    $('form')[0].reset(); $('#upload-preview').empty();
+                });
+            }, 1000);
+            return false;
+        });
+
+        table.render({
+            elem: '#historyTable', data: localData, page: true, skin: 'line', limit: 5,
+            cols: [[
+                {field: 'time', title: '反馈时间', width: 180, sort: true},
+                {field: 'type', title: '反馈类型', width: 120, templet: function(d){
+                    var color = '';
+                    if(d.type === '系统故障' || d.type === 'bug') color = '#ff4d4f'; // 红色
+                    else if(d.type === '服务投诉' || d.type === '投诉') color = '#fa8c16'; // 橙色
+                    else if(d.type === '功能建议' || d.type === '建议') color = '#13c2c2'; // 青色
+                    else color = '#1890ff'; // 蓝色 (咨询)
+
+                    // 如果是旧数据 'bug'，显示为 '系统故障'
+                    var text = (d.type === 'bug') ? '系统故障' : d.type;
+
+                    return '<span style="color: '+ color +'; font-weight: 500;">'+ text +'</span>';
+                }},
+                {field: 'content', title: '反馈简述', minWidth: 200},
+                {field: 'status', title: '处理状态', width: 100, templet: '#statusTpl', align:'center'},
+                {field: 'result', title: '当前结果', minWidth: 200},
+                {fixed: 'right', title: '操作', toolbar: '#barDemo', width: 120, align:'center'}
+            ]]
+        });
+
+        table.on('tool(historyTable)', function(obj){
+            if(obj.event === 'detail'){
+                var data = obj.data;
+                var $c = $('<div>').append($('#detail-popup-content').html());
+                $c.find('#d-id').text(data.id); $c.find('#d-time').text(data.time);
+                $c.find('#d-type').text(data.type); $c.find('#d-content').text(data.content);
+
+                var tl = `<li class="layui-timeline-item"><i class="layui-icon layui-timeline-axis layui-icon-circle"></i><div class="layui-timeline-content layui-text"><h3 class="layui-timeline-title" style="font-size:14px; color:#999;">用户提交 (${data.time})</h3></div></li>`;
+                if(data.status >= 1) tl = `<li class="layui-timeline-item"><i class="layui-icon layui-timeline-axis layui-icon-circle" style="color:#1890ff;"></i><div class="layui-timeline-content layui-text"><h3 class="layui-timeline-title" style="font-size:14px; color:#1890ff;">正在处理中...</h3><p>您的反馈已分派至相关部门。</p></div></li>` + tl;
+                if(data.status === 2) tl = `<li class="layui-timeline-item"><i class="layui-icon layui-timeline-axis layui-icon-circle" style="color:#52c41a;"></i><div class="layui-timeline-content layui-text"><h3 class="layui-timeline-title" style="font-size:14px; color:#52c41a;">已办结</h3><p>处理结果：${data.result || '已修复/已回复'}</p></div></li>` + tl;
+
+                $c.find('.layui-timeline').html(tl);
+                layer.open({
+                    type: 1,
+                    title: '反馈详情',
+                    area: ['600px', 'auto'],
+                    content: $c.html(),
+                    shadeClose: true,
+                    btn: ['关闭'],
+                    skin: 'layui-layer-rim'
+                });
+            }
+        });
+    });
+</script>
+</body>
+</html>

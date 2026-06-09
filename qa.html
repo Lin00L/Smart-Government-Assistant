@@ -1,0 +1,606 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>智能问答助手 - 沉浸式体验</title>
+    <link rel="stylesheet" href="layui/css/layui.css">
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+
+    <style>
+        :root {
+            --gov-primary: #1890ff;
+            --gov-primary-light: #e6f7ff;
+            --gov-grad-start: #1890ff;
+            --gov-grad-end: #0050b3;
+            --bg-body: #f7f9fc;
+            --chat-width: 800px;
+        }
+
+        body {
+            font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, "Helvetica Neue", Arial, sans-serif;
+            background-color: var(--bg-body);
+            margin: 0; padding: 0;
+            height: 100vh;
+            display: flex; flex-direction: column;
+            overflow: hidden;
+            color: #333;
+        }
+
+        /* 1. 极简头部 */
+        .ai-header {
+            height: 60px;
+            display: flex; align-items: center; justify-content: space-between;
+            padding: 0 24px;
+            background: rgba(255,255,255,0.8);
+            backdrop-filter: blur(10px);
+            position: fixed; top: 0; left: 0; right: 0;
+            z-index: 100;
+            border-bottom: 1px solid rgba(0,0,0,0.05);
+        }
+        .header-brand { font-size: 18px; font-weight: 700; color: #1f2937; display: flex; align-items: center; gap: 10px; }
+        .header-brand i { color: var(--gov-primary); font-size: 24px; }
+        .header-actions .layui-btn-primary { border: none; background: transparent; }
+        .header-actions .layui-btn-primary:hover { color: var(--gov-primary); background: rgba(0,0,0,0.05); }
+
+        /* 2. 聊天区域 */
+        .chat-scroll-area {
+            flex: 1;
+            overflow-y: auto;
+            padding: 80px 20px 140px; /* 上下留白 */
+            scroll-behavior: smooth;
+            display: flex; flex-direction: column; align-items: center;
+        }
+
+        /* 2.1 欢迎屏 (Empty State) */
+        .welcome-screen {
+            display: flex; flex-direction: column; align-items: center; justify-content: center;
+            height: 100%; width: 100%; max-width: 900px;
+            animation: fadeIn 0.5s ease-out;
+        }
+        .welcome-logo {
+            width: 80px; height: 80px; background: linear-gradient(135deg, var(--gov-grad-start), var(--gov-grad-end));
+            border-radius: 50%; display: flex; align-items: center; justify-content: center;
+            color: #fff; font-size: 40px; margin-bottom: 24px;
+            box-shadow: 0 10px 30px rgba(24, 144, 255, 0.3);
+        }
+        .welcome-title { font-size: 28px; font-weight: 700; margin-bottom: 10px; color: #1f2937; }
+        .welcome-sub { font-size: 16px; color: #6b7280; margin-bottom: 40px; }
+
+        .suggestion-grid {
+            display: grid; grid-template-columns: repeat(3, 1fr); gap: 16px; width: 100%;
+        }
+        .suggestion-card {
+            background: #fff; padding: 20px; border-radius: 12px;
+            border: 1px solid #e5e7eb; cursor: pointer;
+            transition: all 0.2s; text-align: left;
+        }
+        .suggestion-card:hover { border-color: var(--gov-primary); box-shadow: 0 4px 12px rgba(0,0,0,0.05); transform: translateY(-2px); }
+        .card-icon { font-size: 20px; color: var(--gov-primary); margin-bottom: 10px; }
+        .card-text { font-weight: 500; font-size: 14px; color: #374151; }
+
+        /* 2.2 消息流 */
+        .message-list { width: 100%; max-width: var(--chat-width); display: none; }
+
+        .msg-group { margin-bottom: 32px; animation: slideUp 0.3s ease-out; }
+        @keyframes slideUp { from { opacity: 0; transform: translateY(20px); } to { opacity: 1; transform: translateY(0); } }
+        @keyframes fadeIn { from { opacity: 0; } to { opacity: 1; } }
+
+        .msg-meta { text-align: center; font-size: 12px; color: #9ca3af; margin-bottom: 12px; }
+
+        .msg-row { display: flex; gap: 16px; margin-bottom: 8px; }
+        .msg-row.user { flex-direction: row-reverse; }
+
+        .avatar {
+            width: 36px; height: 36px; border-radius: 50%; flex-shrink: 0;
+            display: flex; align-items: center; justify-content: center; font-size: 18px;
+        }
+        .avatar.ai { background: #fff; color: var(--gov-primary); border: 1px solid #e5e7eb; }
+        .avatar.user { background: var(--gov-grad-end); color: #fff; }
+
+        .bubble {
+            padding: 12px 18px; border-radius: 12px; font-size: 15px; line-height: 1.6;
+            max-width: 80%; position: relative; word-wrap: break-word;
+            box-shadow: 0 2px 5px rgba(0,0,0,0.02);
+        }
+        .bubble.user {
+            background: linear-gradient(135deg, var(--gov-grad-start), var(--gov-grad-end));
+            color: #fff;
+            border-radius: 12px 2px 12px 12px;
+        }
+        .bubble.ai {
+            background: #fff; color: #1f2937;
+            border-radius: 2px 12px 12px 12px;
+            border: 1px solid #f0f0f0;
+        }
+
+        .msg-actions {
+            display: flex; gap: 10px; margin-top: 6px; padding-left: 54px; /* Align with text */
+            opacity: 0; transition: opacity 0.2s;
+        }
+        .msg-group:hover .msg-actions { opacity: 1; }
+        .action-btn { cursor: pointer; color: #9ca3af; font-size: 13px; display: flex; align-items: center; gap: 4px; }
+        .action-btn:hover { color: var(--gov-primary); }
+
+        /* 3. 悬浮输入栏 */
+        .input-wrapper {
+            position: fixed; bottom: 30px; left: 50%; transform: translateX(-50%);
+            width: 100%; max-width: var(--chat-width);
+            z-index: 200; padding: 0 20px; box-sizing: border-box;
+        }
+
+        .input-card {
+            background: #fff; border-radius: 16px;
+            box-shadow: 0 0 0 1px rgba(0,0,0,0.05), 0 10px 30px rgba(0,0,0,0.1);
+            padding: 10px; display: flex; align-items: flex-end; gap: 10px;
+            transition: box-shadow 0.3s;
+        }
+        .input-card:focus-within { box-shadow: 0 0 0 2px rgba(24, 144, 255, 0.2), 0 10px 30px rgba(0,0,0,0.1); }
+
+        .chat-input {
+            flex: 1; border: none; outline: none; background: transparent;
+            padding: 12px 10px; font-size: 16px; resize: none; max-height: 200px; min-height: 24px;
+            line-height: 1.5; font-family: inherit;
+        }
+
+        .btn-voice-toggle {
+            width: 40px; height: 40px; border-radius: 8px; border: none; background: transparent;
+            color: #6b7280; cursor: pointer; transition: 0.2s; font-size: 18px;
+        }
+        .btn-voice-toggle:hover { background: #f3f4f6; color: #374151; }
+
+        /* 录音时的波纹特效 */
+        .btn-voice-toggle.recording { color: #ff4d4f; background: #fff1f0; animation: breathe 2s infinite; }
+        @keyframes breathe { 0% { box-shadow: 0 0 0 0 rgba(255, 77, 79, 0.4); } 70% { box-shadow: 0 0 0 8px rgba(255, 77, 79, 0); } 100% { box-shadow: 0 0 0 0 rgba(255, 77, 79, 0); } }
+
+        .btn-send {
+            width: 40px; height: 40px; border-radius: 8px; border: none;
+            background: var(--gov-primary); color: #fff; cursor: pointer;
+            display: flex; align-items: center; justify-content: center;
+            transition: all 0.2s; font-size: 16px;
+        }
+        .btn-send:hover { background: var(--gov-primary-dark); transform: scale(1.05); }
+        .btn-send:disabled { background: #e5e7eb; cursor: not-allowed; transform: none; }
+
+        .footer-note { text-align: center; font-size: 12px; color: #9ca3af; margin-top: 10px; }
+
+        /* 移动端适配 */
+        @media screen and (max-width: 768px) {
+            .chat-scroll-area { padding: 70px 15px 120px; }
+            .suggestion-grid { grid-template-columns: 1fr; }
+            .bubble { max-width: 90%; }
+            .input-wrapper { bottom: 10px; }
+        }
+    </style>
+</head>
+<body>
+
+<div class="ai-header">
+    <div class="header-brand">
+        <i class="layui-icon layui-icon-dialogue"></i>
+        智能问答助手
+    </div>
+    <div class="header-actions">
+        <button class="layui-btn layui-btn-primary layui-btn-sm" onclick="clearRecords()" title="清空会话">
+            <i class="layui-icon layui-icon-delete"></i>
+        </button>
+        <a href="index.html" class="layui-btn layui-btn-primary layui-btn-sm" title="退出">
+            <i class="layui-icon layui-icon-close"></i>
+        </a>
+    </div>
+</div>
+
+<div class="chat-scroll-area" id="scroll-wrapper">
+
+    <div class="welcome-screen" id="welcome-screen">
+        <div class="welcome-logo"><i class="layui-icon layui-icon-template-1"></i></div>
+        <h2 class="welcome-title">有什么可以帮您？</h2>
+        <p class="welcome-sub">我可以为您解答政务政策、办事流程，或协助您查询办理进度。</p>
+
+        <div class="suggestion-grid">
+            <div class="suggestion-card" onclick="fillInput('如何办理新生儿医保？')">
+                <div class="card-icon"><i class="layui-icon layui-icon-user"></i></div>
+                <div class="card-text">如何办理新生儿医保？</div>
+            </div>
+            <div class="suggestion-card" onclick="fillInput('公积金提取需要什么材料？')">
+                <div class="card-icon"><i class="layui-icon layui-icon-file"></i></div>
+                <div class="card-text">公积金提取材料清单</div>
+            </div>
+            <div class="suggestion-card" onclick="fillInput('查询我的办件进度')">
+                <div class="card-icon"><i class="layui-icon layui-icon-search"></i></div>
+                <div class="card-text">查询我的办件进度</div>
+            </div>
+        </div>
+    </div>
+
+    <div class="message-list" id="message-list">
+        </div>
+
+</div>
+
+<div class="input-wrapper">
+    <div class="input-card">
+        <button class="btn-voice-toggle" id="voice-btn" title="语音输入">
+            <i class="layui-icon layui-icon-voice"></i>
+        </button>
+        <textarea class="chat-input" id="msg-input" rows="1" placeholder="输入您的问题... (Shift+Enter 换行)"></textarea>
+        <button class="btn-send" id="send-btn">
+            <i class="layui-icon layui-icon-release"></i>
+        </button>
+    </div>
+    <div class="footer-note">AI 生成内容仅供参考，具体以官方办事大厅为准</div>
+</div>
+
+<script src="layui/layui.js"></script>
+<script src="crypto-js.min.js"></script>
+<script>
+layui.use(['layer', 'element'], function(){
+    var layer = layui.layer, $ = layui.$;
+
+    // --- 配置与状态 ---
+    const AI_CONFIG = { APPID: "1562f943", APISecret: "YTNkYTE3MjkyMWMyODA3MTBkNTkyM2Zm", APIKey: "2cdbcc531505a58d8ce79bd2fb86d416", hostUrl: "wss://spark-api.xf-yun.com/v1.1/chat" };
+    var chatHistory = JSON.parse(localStorage.getItem('gov_chat_history') || '[]');
+
+    // --- 工具函数 ---
+    function generateUUID() { return 'xxxxxxxx-xxxx-4xxx-yxxx-xxxxxxxxxxxx'.replace(/[xy]/g, c => (c === 'x' ? Math.random() * 16 | 0 : (Math.random() * 16 | 0) & 0x3 | 0x8).toString(16)); }
+
+    function getWebsocketUrl() {
+        return new Promise((resolve, reject) => {
+            try {
+                var url = new URL(AI_CONFIG.hostUrl);
+                var date = new Date().toGMTString();
+                var signature = CryptoJS.enc.Base64.stringify(CryptoJS.HmacSHA256(`host: ${url.host}\ndate: ${date}\nGET ${url.pathname} HTTP/1.1`, AI_CONFIG.APISecret));
+                var auth = btoa(`api_key="${AI_CONFIG.APIKey}", algorithm="hmac-sha256", headers="host date request-line", signature="${signature}"`);
+                resolve(`wss://${url.host}${url.pathname}?authorization=${auth}&date=${date}&host=${url.host}`);
+            } catch (err) { reject(err); }
+        });
+    }
+
+    // 自动调整输入框高度
+    const tx = document.getElementById('msg-input');
+    if(tx) {
+        tx.setAttribute('style', 'height:' + (tx.scrollHeight) + 'px;overflow-y:hidden;');
+        tx.addEventListener("input", OnInput, false);
+    }
+    function OnInput() {
+        this.style.height = 'auto';
+        this.style.height = (this.scrollHeight) + 'px';
+    }
+
+    // --- 渲染逻辑 ---
+    function render() {
+        if (chatHistory.length === 0) {
+            $('#welcome-screen').show();
+            $('#message-list').hide();
+        } else {
+            $('#welcome-screen').hide();
+            $('#message-list').show();
+
+            var html = chatHistory.map(group => {
+                var userItem = group.items.find(i => i.type === 'user');
+                var sysItem = group.items.find(i => i.type === 'system');
+                if (!userItem) return '';
+
+                return `
+                <div class="msg-group" id="g-${group.groupId}">
+                    <div class="msg-meta">${userItem.time}</div>
+
+                    <div class="msg-row user">
+                        <div class="avatar user"><i class="layui-icon layui-icon-username"></i></div>
+                        <div class="bubble user">${userItem.text}</div>
+                    </div>
+
+                    ${sysItem ? `
+                    <div class="msg-row ai">
+                        <div class="avatar ai"><i class="layui-icon layui-icon-template-1"></i></div>
+                        <div class="bubble ai" id="bubble-${group.groupId}">${sysItem.text}</div>
+                    </div>
+                    <div class="msg-actions">
+                        <div class="action-btn" onclick="speakText(this)"><i class="layui-icon layui-icon-headset"></i> 朗读</div>
+                        <div class="action-btn" onclick="copyText(this)"><i class="layui-icon layui-icon-file-b"></i> 复制</div>
+                        <div class="action-btn" onclick="deleteGroup('${group.groupId}')"><i class="layui-icon layui-icon-delete"></i> 删除</div>
+                    </div>
+                    ` : ''}
+                </div>`;
+            }).join('');
+            $('#message-list').html(html);
+            scrollToBottom();
+        }
+    }
+
+    function scrollToBottom() {
+        var el = document.getElementById('scroll-wrapper'); // 确保您的HTML中有这个ID的容器
+        if(el) {
+            setTimeout(() => el.scrollTop = el.scrollHeight, 100);
+        } else {
+            // 兼容旧版布局
+            window.scrollTo(0, document.body.scrollHeight);
+        }
+    }
+
+    // --- [修复点1] 新增：更新UI并保存成功的回复 ---
+    function saveAndRenderSuccess(groupId, text, timeStr) {
+        // 1. 更新 UI：把“正在思考”替换为文本
+        $(`#bubble-${groupId}`).html(text);
+
+        // 2. 更新历史数据
+        var target = chatHistory.find(g => g.groupId === groupId);
+        if (target) {
+            target.items.push({type: 'system', text: text, time: timeStr});
+            localStorage.setItem('gov_chat_history', JSON.stringify(chatHistory));
+
+            // 重新渲染以显示操作按钮(复制/朗读等)
+            // 如果不重新渲染，新生成的回复下方没有操作栏
+            // 也可以选择局部插入DOM来优化性能，这里为了简单直接重新渲染
+            setTimeout(() => render(), 100);
+        }
+    }
+
+    // --- AI 调用逻辑 ---
+    function callAI(question, groupId, timeStr) {
+        const systemPersona = "你是一个专业的政府政务服务助手。请用官方、准确、亲切的语气回答用户的问题。";
+        let requestMessages = [];
+
+        // 记忆上下文逻辑
+        let completedHistory = chatHistory.filter(g =>
+            g.items.some(i => i.type === 'user') &&
+            g.items.some(i => i.type === 'system')
+        );
+        let recentHistory = completedHistory.slice(-3);
+
+        recentHistory.forEach(group => {
+            let u = group.items.find(i => i.type === 'user');
+            let a = group.items.find(i => i.type === 'system');
+            if (u && a) {
+                requestMessages.push({ role: "user", content: u.text });
+                requestMessages.push({ role: "assistant", content: a.text });
+            }
+        });
+
+        requestMessages.push({ role: "user", content: question });
+        if (requestMessages.length > 0) {
+            requestMessages[0].content = systemPersona + "\n\n" + requestMessages[0].content;
+        }
+
+        getWebsocketUrl().then(url => {
+            let socket = new WebSocket(url);
+            let totalRes = "", isError = false;
+            let $bubble = $(`#bubble-${groupId}`);
+
+            socket.onopen = () => socket.send(JSON.stringify({
+                "header": { "app_id": AI_CONFIG.APPID, "uid": "user_" + groupId.substring(0,8) },
+                "parameter": { "chat": { "domain": "lite", "temperature": 0.5, "max_tokens": 2048 } },
+                "payload": { "message": { "text": requestMessages } }
+            }));
+
+            socket.onmessage = (e) => {
+                let data = JSON.parse(e.data);
+                if (data.header.code !== 0) {
+                    isError = true;
+                    console.error("API Error:", data);
+                    $bubble.html(`<span style="color:#ff4d4f"><i class="layui-icon layui-icon-close-fill"></i> 服务繁忙: ${data.header.message}</span>`);
+                    return socket.close();
+                }
+
+                if (data.payload && data.payload.choices) {
+                    let chunk = data.payload.choices.text[0].content;
+                    totalRes += chunk;
+                    $bubble.html(totalRes.replace(/\n/g, '<br>'));
+                    scrollToBottom();
+                }
+
+                if (data.header.status === 2) {
+                    socket.close();
+                    if(!isError) {
+                        // 使用统一的保存函数
+                        saveAndRenderSuccess(groupId, totalRes.replace(/\n/g, '<br>'), timeStr);
+                    }
+                }
+            };
+            socket.onerror = () => $bubble.html('<span style="color:#ff4d4f">网络连接异常</span>');
+        }).catch((err) => {
+            console.error(err);
+            $(`#bubble-${groupId}`).html('<span style="color:#ff4d4f">鉴权失败</span>');
+        });
+    }
+
+    // --- 本地知识库检索 ---
+// [增强版] 本地知识库智能检索
+function searchLocalKnowledge(query) {
+    // 1. 数据预处理
+    var faqs = JSON.parse(localStorage.getItem('gov_faqs') || '[]');
+    // 去除查询语句中的标点符号、空格，统一转小写，提取核心字符
+    // 正则说明：匹配中文、英文、数字
+    var cleanQuery = query.toLowerCase().replace(/[^\u4e00-\u9fa5a-z0-9]/g, "");
+
+    if (!cleanQuery || faqs.length === 0) return null;
+
+    console.log("正在智能检索:", cleanQuery);
+
+    var bestMatch = null;
+    var maxScore = 0;
+    var THRESHOLD = 0.3; // 匹配阈值 (0-1)，低于此分数认为不相关，建议 0.3 - 0.5
+
+    // 2. 遍历知识库进行打分
+    for (var i = 0; i < faqs.length; i++) {
+        var item = faqs[i];
+        if (!item.question) continue;
+
+        // 预处理知识库里的问题
+        var cleanQuestion = item.question.toLowerCase().replace(/[^\u4e00-\u9fa5a-z0-9]/g, "");
+
+        // --- 核心算法：简易相似度评分 ---
+
+        // A. 完全包含奖励 (权重最高)
+        if (cleanQuestion === cleanQuery) {
+            maxScore = 1.0; // 满分直接返回
+            bestMatch = item;
+            break;
+        }
+
+        // B. 关键词覆盖率算法
+        // 将问题拆分为单字/字符数组
+        var queryChars = cleanQuery.split("");
+        var hitCount = 0;
+
+        // 统计有多少字符在标准问题中出现
+        queryChars.forEach(function(char) {
+            if (cleanQuestion.indexOf(char) > -1) {
+                hitCount++;
+            }
+        });
+
+        // 基础分：匹配字符数 / (查询长度 + 问题长度 - 匹配字符数) -> Jaccard 相似度系数
+        // 这种算法能有效惩罚长度差异过大的匹配 (如用“社保”匹配到几百字的问题)
+        var score = hitCount / (cleanQuery.length + cleanQuestion.length - hitCount);
+
+        // C. 连续匹配奖励 (如果存在连续的子字符串，加分)
+        if (cleanQuestion.includes(cleanQuery) || cleanQuery.includes(cleanQuestion)) {
+            score += 0.3; // 包含奖励
+        }
+
+        // 3. 更新最佳匹配
+        if (score > maxScore) {
+            maxScore = score;
+            bestMatch = item;
+        }
+    }
+
+    console.log("最高匹配得分:", maxScore, "匹配项:", bestMatch ? bestMatch.question : "无");
+
+    // 4. 返回结果
+    if (bestMatch && maxScore >= THRESHOLD) {
+        return "【知识库智能匹配】" + bestMatch.answer;
+    }
+
+    return null; // 未达到阈值或无匹配
+}
+
+    // --- 发送消息主逻辑 ---
+    function sendMessage() {
+        var text = $('#msg-input').val().trim();
+        if(!text) return layer.msg('请输入内容', {icon: 0, anim: 6});
+
+        // [修复点2] 修正变量重复声明
+        var now = new Date();
+        var timeStr = `${String(now.getHours()).padStart(2,'0')}:${String(now.getMinutes()).padStart(2,'0')}`;
+        var groupId = generateUUID();
+
+        // 1. 先推入用户消息
+        chatHistory.push({ groupId: groupId, items: [{type: 'user', text: text, time: timeStr}] });
+
+        // 2. 切换 UI 状态
+        if($('#welcome-screen').is(':visible')) {
+            $('#welcome-screen').hide();
+            $('#message-list').show();
+        }
+
+        // 3. 插入临时的“正在思考”气泡
+        $('#message-list').append(`
+            <div class="msg-group" id="g-${groupId}">
+                <div class="msg-meta">${timeStr}</div>
+                <div class="msg-row user">
+                    <div class="avatar user"><i class="layui-icon layui-icon-username"></i></div>
+                    <div class="bubble user">${text}</div>
+                </div>
+                <div class="msg-row ai">
+                    <div class="avatar ai"><i class="layui-icon layui-icon-template-1"></i></div>
+                    <div class="bubble ai" id="bubble-${groupId}">
+                        <div class="layui-icon layui-icon-loading layui-anim layui-anim-rotate layui-anim-loop" style="color:#1890ff"></div> 正在思考...
+                    </div>
+                </div>
+            </div>
+        `);
+
+        $('#msg-input').val('').css('height', 'auto');
+        scrollToBottom();
+
+        // 4. 核心逻辑：先查本地 FAQ，查不到再问 AI
+        var localAnswer = searchLocalKnowledge(text);
+
+        if (localAnswer) {
+            console.log("Found local answer:", localAnswer);
+            // 命中本地库，模拟延迟后直接回答
+            setTimeout(function() {
+                saveAndRenderSuccess(groupId, localAnswer, timeStr); // 之前报错就是因为缺少这个函数
+            }, 600);
+        } else {
+            console.log("No local answer, calling AI...");
+            // 未命中，调用大模型
+            callAI(text, groupId, timeStr);
+        }
+    }
+
+    // --- 初始化渲染 ---
+    render();
+
+    // --- 事件绑定 ---
+    $('#send-btn').on('click', sendMessage);
+    $('#msg-input').on('keydown', function(e){
+        if(e.key === 'Enter' && !e.shiftKey) { e.preventDefault(); sendMessage(); }
+    });
+
+    window.fillInput = function(txt) {
+        $('#msg-input').val(txt);
+        sendMessage();
+    };
+
+    // 语音功能
+    if (window.SpeechRecognition || window.webkitSpeechRecognition) {
+        var recognition = new (window.SpeechRecognition || window.webkitSpeechRecognition)();
+        recognition.lang = 'zh-CN'; recognition.continuous = false;
+        $('#voice-btn').on('click', function(){
+            if($(this).hasClass('recording')) {
+                recognition.stop(); $(this).removeClass('recording');
+                layer.closeAll('tips');
+            } else {
+                recognition.start(); $(this).addClass('recording');
+                layer.tips('正在聆听...', '#voice-btn', {tips: [1, '#ff4d4f'], time: 0});
+            }
+        });
+        recognition.onresult = (e) => {
+            $('#msg-input').val(e.results[0][0].transcript);
+            $('#voice-btn').removeClass('recording');
+            layer.closeAll('tips');
+            sendMessage();
+        };
+        recognition.onend = () => { $('#voice-btn').removeClass('recording'); layer.closeAll('tips'); };
+    } else {
+        $('#voice-btn').on('click', () => layer.msg('当前浏览器不支持语音输入'));
+    }
+
+    // 辅助功能
+    window.deleteGroup = (gid) => {
+        $(`#g-${gid}`).slideUp(300, function(){ $(this).remove(); if($('#message-list').children().length===0) render(); });
+        chatHistory = chatHistory.filter(g => g.groupId !== gid);
+        localStorage.setItem('gov_chat_history', JSON.stringify(chatHistory));
+    };
+
+    window.clearRecords = () => {
+        if(chatHistory.length===0) return;
+        layer.confirm('确定清空所有记录吗？', {icon:3, title:'提示'}, function(index){
+            localStorage.removeItem('gov_chat_history');
+            chatHistory=[];
+            render();
+            layer.close(index);
+        });
+    };
+
+    window.speakText = (btn) => {
+        var text = $(btn).closest('.msg-group').find('.bubble.ai').text();
+        if(text){
+            window.speechSynthesis.cancel();
+            var u = new SpeechSynthesisUtterance(text); u.lang = 'zh-CN';
+            window.speechSynthesis.speak(u);
+            layer.msg('开始朗读', {icon:16, time:1000});
+        }
+    };
+
+    window.copyText = (btn) => {
+        var text = $(btn).closest('.msg-group').find('.bubble.ai').text();
+        navigator.clipboard.writeText(text).then(() => layer.msg('已复制', {icon:1}));
+    };
+});
+</script>
+</body>
+</html>

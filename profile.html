@@ -1,0 +1,505 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>个人中心 - 智能政务助手</title>
+    <link rel="stylesheet" href="layui/css/layui.css">
+    <style>
+        :root {
+            /* 统一配色变量 */
+            --gov-primary: #1890ff;
+            --gov-primary-dark: #096dd9;
+            --gov-bg: #f0f2f5;
+            --gov-white: #ffffff;
+            --text-main: #000000d9;
+            --text-secondary: #00000073;
+            --border-color: #f0f0f0;
+            --success-color: #52c41a;
+            --card-shadow: 0 1px 2px -2px rgba(0,0,0,0.16), 0 3px 6px 0 rgba(0,0,0,0.12), 0 5px 12px 4px rgba(0,0,0,0.09);
+        }
+
+        body {
+            font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, "Helvetica Neue", Arial, sans-serif;
+            background-color: var(--gov-bg);
+            background-image: radial-gradient(#e6f7ff 1px, transparent 1px);
+            background-size: 20px 20px;
+            margin: 0; padding: 24px;
+            color: var(--text-main);
+            box-sizing: border-box;
+        }
+
+        .settings-container {
+            max-width: 1100px; margin: 0 auto;
+            background: var(--gov-white);
+            border-radius: 8px;
+            box-shadow: var(--card-shadow);
+            display: flex;
+            min-height: 700px;
+            overflow: hidden;
+            border: 1px solid #f0f0f0;
+        }
+
+        /* 侧边栏 */
+        .settings-sidebar {
+            width: 260px;
+            background-color: #fff;
+            border-right: 1px solid var(--border-color);
+            padding: 24px 0;
+            flex-shrink: 0;
+            display: flex;
+            flex-direction: column;
+        }
+
+        .nav-title {
+            padding: 0 24px 16px;
+            font-size: 18px;
+            font-weight: 600;
+            color: #1f2937;
+            border-bottom: 1px solid var(--border-color);
+            margin-bottom: 8px;
+        }
+
+        .nav-item {
+            padding: 14px 24px;
+            cursor: pointer;
+            font-size: 14px;
+            color: var(--text-main);
+            border-right: 3px solid transparent;
+            transition: all 0.3s;
+            display: flex;
+            align-items: center;
+            margin-bottom: 4px;
+        }
+        .nav-item i { margin-right: 12px; font-size: 16px; width: 16px; text-align: center; }
+        .nav-item:hover { color: var(--gov-primary); background-color: #fafafa; }
+        .nav-item.active {
+            background-color: #e6f7ff;
+            color: var(--gov-primary);
+            border-right-color: var(--gov-primary);
+            font-weight: 500;
+        }
+
+        /* 内容区 */
+        .settings-content { flex: 1; padding: 40px 48px; overflow-y: auto; }
+
+        .panel { display: none; animation: fadeIn 0.4s ease; }
+        .panel.active { display: block; }
+        @keyframes fadeIn { from { opacity: 0; transform: translateY(10px); } to { opacity: 1; transform: translateY(0); } }
+
+        .panel-title {
+            font-size: 22px;
+            font-weight: 600;
+            margin-bottom: 32px;
+            padding-bottom: 16px;
+            border-bottom: 1px solid var(--border-color);
+            color: #1f2937;
+        }
+
+        /* 头像 */
+        .avatar-section { display: flex; align-items: center; margin-bottom: 40px; }
+        .avatar-box {
+            width: 88px; height: 88px; border-radius: 50%; overflow: hidden;
+            margin-right: 24px; border: 4px solid #fff;
+            box-shadow: 0 0 0 1px var(--border-color), 0 4px 12px rgba(0,0,0,0.08);
+        }
+        .avatar-box img { width: 100%; height: 100%; object-fit: cover; }
+
+        .avatar-info { display: flex; flex-direction: column; justify-content: center; }
+        .avatar-label { font-weight: 600; margin-bottom: 8px; color: #1f2937; font-size: 16px; }
+        .avatar-btn {
+            font-size: 13px; color: var(--gov-primary); cursor: pointer; text-decoration: none;
+            display: inline-flex; align-items: center; transition: color 0.3s;
+        }
+        .avatar-btn:hover { color: var(--gov-primary-dark); }
+        .avatar-tip { font-size: 12px; color: var(--text-secondary); margin-top: 6px; }
+
+        /* 表单样式优化 */
+        .layui-form-label { width: 90px; color: var(--text-main); padding: 9px 15px; }
+        .layui-input-block { margin-left: 120px; }
+        .layui-input, .layui-select { border-radius: 4px; border-color: #d9d9d9; height: 38px; }
+        .layui-input:hover, .layui-select:hover { border-color: var(--gov-primary); }
+        .layui-input:focus, .layui-select:focus { border-color: var(--gov-primary); box-shadow: 0 0 0 2px rgba(24, 144, 255, 0.2); }
+        .layui-input[disabled] { background-color: #f5f5f5; color: rgba(0,0,0,0.25); cursor: not-allowed; }
+
+        /* 主题选择 */
+        .theme-grid { display: flex; gap: 24px; flex-wrap: wrap; }
+        .theme-option { width: 160px; cursor: pointer; position: relative; }
+        .theme-preview {
+            height: 90px; border: 1px solid #d9d9d9; border-radius: 6px;
+            margin-bottom: 12px; position: relative; overflow: hidden; transition: all 0.3s;
+            box-shadow: 0 2px 4px rgba(0,0,0,0.02);
+        }
+
+        /* 预览图布局模拟 */
+        .theme-preview::before { content: ''; position: absolute; left: 0; top: 0; bottom: 0; width: 25%; background: #f0f2f5; z-index: 1; }
+        .theme-preview::after { content: ''; position: absolute; left: 0; top: 0; right: 0; height: 18px; background: #fff; z-index: 2; border-bottom: 1px solid #f0f0f0; }
+
+        /* 主题色块模拟 */
+        .theme-blue .theme-preview::after { background: #001529; border-bottom: none; }
+        .theme-gray .theme-preview::after { background: #fff; border-bottom: 1px solid #d9d9d9; } .theme-gray .theme-preview::before { background: #fafafa; }
+        .theme-red .theme-preview::after { background: #cf1322; border-bottom: none; } .theme-red .theme-preview::before { background: #fff1f0; }
+
+        .theme-option.selected .theme-preview {
+            border-color: var(--gov-primary);
+            box-shadow: 0 0 0 2px var(--gov-primary);
+        }
+        /* 选中对勾 */
+        .theme-option.selected .theme-preview::before {
+            content: '✓';
+            position: absolute; bottom: 0; right: 0; width: 24px; height: 24px;
+            background: var(--gov-primary); color: #fff;
+            border-top-left-radius: 6px; z-index: 10;
+            display: flex; align-items: center; justify-content: center; font-size: 12px;
+        }
+
+        .theme-label { text-align: center; font-size: 14px; color: var(--text-main); }
+
+        /* 表格与按钮 */
+        .login-history-table { border: 1px solid #f0f0f0; border-radius: 4px; overflow: hidden; }
+        .layui-table th { background-color: #fafafa; font-weight: 600; color: var(--text-main); border-color: #f0f0f0; }
+        .layui-table td { border-color: #f0f0f0; color: var(--text-secondary); }
+
+        .btn-save {
+            background-color: var(--gov-primary);
+            padding: 0 32px; height: 40px; line-height: 40px;
+            transition: all 0.3s; border-radius: 4px; font-size: 14px;
+            box-shadow: 0 2px 0 rgba(0,0,0,0.045);
+        }
+        .btn-save:hover { background-color: var(--gov-primary-dark); box-shadow: 0 4px 10px rgba(24, 144, 255, 0.3); }
+
+        /* 电子证照列表 */
+        #license-list .layui-col-md6 { margin-bottom: 24px; }
+
+        @media screen and (max-width: 768px) {
+            body { padding: 0; background-color: #fff; }
+            .settings-container {
+                flex-direction: column; border-radius: 0; box-shadow: none; height: 100vh;
+                display: block; overflow-y: auto; border: none;
+            }
+            .settings-sidebar {
+                width: 100%; height: auto; border-right: none; border-bottom: 1px solid var(--border-color);
+                flex-direction: row; overflow-x: auto; padding: 0;
+                position: sticky; top: 0; background: #fff; z-index: 10;
+            }
+            .nav-title { display: none; }
+            .nav-item {
+                flex-shrink: 0; border-right: none; border-bottom: 2px solid transparent;
+                padding: 15px; justify-content: center; margin-bottom: 0;
+            }
+            .nav-item.active {
+                background-color: transparent; border-right: none;
+                border-bottom-color: var(--gov-primary); color: var(--gov-primary);
+            }
+            .settings-content { padding: 24px; overflow: visible; }
+            .layui-input-block { margin-left: 0; margin-top: 8px; }
+            .layui-form-label { width: auto; padding: 9px 0; text-align: left; }
+        }
+    </style>
+    <script>
+        // 主题配置 (保持原逻辑)
+        (function(){
+            var config = JSON.parse(localStorage.getItem('gov_ui_config') || '{}');
+            var style = document.createElement('style');
+            var css = '';
+
+            if(config.theme === 'gray') {
+                css += `:root { --gov-primary: #595959 !important; --gov-primary-dark: #262626 !important; } .nav-item.active { color: #262626 !important; border-right-color: #262626 !important; background-color: #f5f5f5 !important; }`;
+            } else if(config.theme === 'red') {
+                css += `:root { --gov-primary: #cf1322 !important; --gov-primary-dark: #a8071a !important; } .nav-item.active { color: #cf1322 !important; border-right-color: #cf1322 !important; background-color: #fff1f0 !important; }`;
+            }
+            if(config.fontsize === 'large') document.documentElement.style.fontSize = '18px';
+
+            style.innerHTML = css;
+            if(css) document.head.appendChild(style);
+        })();
+    </script>
+</head>
+<body>
+<div class="settings-container">
+    <div class="settings-sidebar">
+        <div class="nav-title">设置中心</div>
+        <div class="nav-item active" onclick="switchTab('info', this)"><i class="layui-icon layui-icon-username"></i> 个人信息</div>
+        <div class="nav-item" onclick="switchTab('ui', this)"><i class="layui-icon layui-icon-theme"></i> 界面设置</div>
+        <div class="nav-item" onclick="switchTab('security', this)"><i class="layui-icon layui-icon-password"></i> 安全设置</div>
+        <div class="nav-item" onclick="switchTab('license', this)"><i class="layui-icon layui-icon-file"></i> 我的证照</div>
+    </div>
+
+    <div class="settings-content">
+        <div id="panel-info" class="panel active">
+            <h2 class="panel-title">个人基本信息</h2>
+            <form class="layui-form" lay-filter="form-info" onsubmit="return false;">
+                <div class="avatar-section">
+                    <div class="avatar-box"><img src="https://unpkg.com/outeres@0.0.10/img/layui/icon-v2.png" alt="用户头像"></div>
+                    <div class="avatar-info">
+                        <div class="avatar-label">当前头像</div>
+                        <a href="javascript:;" class="avatar-btn" id="upload-avatar"><i class="layui-icon layui-icon-upload-drag" style="margin-right: 4px;"></i> 上传新头像</a>
+                        <div class="avatar-tip">支持 JPG/PNG，最大 2MB</div>
+                    </div>
+                </div>
+                <div class="layui-form-item">
+                    <label class="layui-form-label">用户名</label>
+                    <div class="layui-input-block">
+                        <input type="text" value="liming_1985" disabled class="layui-input" style="width: 300px;">
+                        <div class="layui-form-mid layui-word-aux" style="font-size:12px; margin-top:4px;">用户名注册后不可修改</div>
+                    </div>
+                </div>
+                <div class="layui-form-item">
+                    <label class="layui-form-label">真实姓名</label>
+                    <div class="layui-input-block">
+                        <input type="text" name="realname" placeholder="请输入真实姓名" class="layui-input" style="width: 300px;">
+                    </div>
+                </div>
+                <div class="layui-form-item">
+                    <label class="layui-form-label">手机号码</label>
+                    <div class="layui-input-block">
+                        <div style="display: flex; align-items: center;">
+                            <input type="text" value="138****8888" disabled class="layui-input" style="width: 200px; margin-right: 12px;">
+                            <a href="javascript:;" style="color:var(--gov-primary); font-size:14px;">更换绑定</a>
+                        </div>
+                    </div>
+                </div>
+                <div class="layui-form-item">
+                    <label class="layui-form-label">所属区域</label>
+                    <div class="layui-input-block" style="width: 200px;">
+                        <select name="region">
+                            <option value="cy" selected>朝阳区</option>
+                            <option value="hd">海淀区</option>
+                            <option value="dc">东城区</option>
+                            <option value="xc">西城区</option>
+                        </select>
+                    </div>
+                </div>
+                <div class="layui-form-item" style="margin-top: 40px;">
+                    <div class="layui-input-block">
+                        <button class="layui-btn btn-save" lay-submit lay-filter="save-info">保存个人信息</button>
+                    </div>
+                </div>
+            </form>
+        </div>
+
+        <div id="panel-ui" class="panel">
+            <h2 class="panel-title">界面与偏好设置</h2>
+            <form class="layui-form" lay-filter="form-ui" onsubmit="return false;">
+                <div class="layui-form-item">
+                    <label class="layui-form-label">主题风格</label>
+                    <div class="layui-input-block">
+                        <div class="theme-grid">
+                            <div class="theme-option theme-blue selected" onclick="selectTheme(this)">
+                                <div class="theme-preview"></div>
+                                <div class="theme-label">深蓝政务 (默认)</div>
+                                <input type="radio" name="theme" value="blue" checked style="display:none;">
+                            </div>
+                            <div class="theme-option theme-gray" onclick="selectTheme(this)">
+                                <div class="theme-preview"></div>
+                                <div class="theme-label">简约浅灰</div>
+                                <input type="radio" name="theme" value="gray" style="display:none;">
+                            </div>
+                            <div class="theme-option theme-red" onclick="selectTheme(this)">
+                                <div class="theme-preview"></div>
+                                <div class="theme-label">党建红</div>
+                                <input type="radio" name="theme" value="red" style="display:none;">
+                            </div>
+                        </div>
+                    </div>
+                </div>
+                <div class="layui-form-item">
+                    <label class="layui-form-label">字体大小</label>
+                    <div class="layui-input-block">
+                        <input type="radio" name="fontsize" value="small" title="小 (12px)">
+                        <input type="radio" name="fontsize" value="medium" title="中 (14px)" checked>
+                        <input type="radio" name="fontsize" value="large" title="大 (16px)">
+                    </div>
+                </div>
+                <div class="layui-form-item">
+                    <label class="layui-form-label">默认首页</label>
+                    <div class="layui-input-block" style="width: 250px;">
+                        <select name="default_page">
+                            <option value="dashboard" selected>首页概览</option>
+                            <option value="qa">智能问答</option>
+                            <option value="guide">服务指南</option>
+                            <option value="analysis">数据分析</option>
+                        </select>
+                    </div>
+                </div>
+                <div class="layui-form-item">
+                    <label class="layui-form-label">语音交互</label>
+                    <div class="layui-input-block">
+                        <input type="checkbox" name="voice_mode" lay-skin="switch" lay-text="开启|关闭">
+                        <div class="layui-form-mid layui-word-aux" style="display:block; margin-top:8px; margin-left:0;">
+                            <i class="layui-icon layui-icon-speaker"></i> 开启后，系统将支持语音导航及回答朗读功能，适合老年人使用。
+                        </div>
+                    </div>
+                </div>
+                <div class="layui-form-item" style="margin-top: 40px;">
+                    <div class="layui-input-block">
+                        <button class="layui-btn btn-save" lay-submit lay-filter="save-ui">保存界面设置</button>
+                    </div>
+                </div>
+            </form>
+        </div>
+
+        <div id="panel-security" class="panel">
+            <h2 class="panel-title">账号与安全</h2>
+            <form class="layui-form" lay-filter="form-pwd" onsubmit="return false;">
+                <div class="layui-form-item">
+                    <label class="layui-form-label">当前密码</label>
+                    <div class="layui-input-inline" style="width: 300px;">
+                        <input type="password" name="oldPwd" required lay-verify="required" placeholder="请输入当前密码" class="layui-input">
+                    </div>
+                </div>
+                <div class="layui-form-item">
+                    <label class="layui-form-label">新密码</label>
+                    <div class="layui-input-inline" style="width: 300px;">
+                        <input type="password" name="newPwd" required lay-verify="required" placeholder="6-16位，含字母数字" class="layui-input">
+                    </div>
+                </div>
+                <div class="layui-form-item">
+                    <label class="layui-form-label">确认密码</label>
+                    <div class="layui-input-inline" style="width: 300px;">
+                        <input type="password" name="confirmPwd" required lay-verify="required" placeholder="再次输入新密码" class="layui-input">
+                    </div>
+                </div>
+                <div class="layui-form-item">
+                    <div class="layui-input-block">
+                        <button class="layui-btn btn-save" lay-submit lay-filter="save-pwd">确认修改密码</button>
+                    </div>
+                </div>
+            </form>
+
+            <div style="margin-top: 48px;">
+                <h3 style="font-size: 16px; font-weight: 600; margin-bottom: 20px; display: flex; align-items: center; color: #1f2937;">
+                    <i class="layui-icon layui-icon-log" style="margin-right: 8px; color: var(--gov-primary);"></i> 最近登录记录
+                </h3>
+                <table class="layui-table login-history-table" lay-skin="line">
+                    <colgroup><col width="220"><col><col width="180"><col width="120"></colgroup>
+                    <thead><tr><th>登录时间</th><th>设备名称</th><th>IP地址</th><th>状态</th></tr></thead>
+                    <tbody>
+                        <tr><td>2023-10-24 09:30:15</td><td>Chrome 118 / Windows 10</td><td>192.168.1.101</td><td><span class="layui-badge-dot layui-bg-green"></span> 成功</td></tr>
+                        <tr><td>2023-10-23 14:12:08</td><td>Safari / iPhone 14</td><td>223.104.1.10</td><td><span class="layui-badge-dot layui-bg-green"></span> 成功</td></tr>
+                    </tbody>
+                </table>
+            </div>
+        </div>
+
+        <div id="panel-license" class="panel">
+            <h2 class="panel-title">电子证照管理</h2>
+            <div style="margin-bottom: 24px;">
+                <button class="layui-btn layui-btn-normal" id="btn-add-license" style="background-color: var(--gov-primary);">
+                    <i class="layui-icon layui-icon-upload-drag"></i> 上传新证照
+                </button>
+            </div>
+            <div class="layui-row layui-col-space20" id="license-list"></div>
+        </div>
+    </div>
+</div>
+
+<script src="layui/layui.js"></script>
+<script src="ai.js" onerror="console.log('AI module loaded')"></script>
+<script>
+    // 保持原逻辑函数
+    function recordLog(type, detail) {
+        var logs = JSON.parse(localStorage.getItem('gov_logs') || '[]');
+        var user = JSON.parse(localStorage.getItem('gov_current_user') || '{}');
+        logs.unshift({ time: new Date().toLocaleString(), operator: user.username || '访客', type: type, ip: '192.168.1.'+Math.floor(Math.random()*255), detail: detail });
+        if(logs.length > 50) logs.pop();
+        localStorage.setItem('gov_logs', JSON.stringify(logs));
+    }
+
+    layui.use(['form', 'layer', 'upload'], function(){
+        var form = layui.form, layer = layui.layer, $ = layui.$;
+        var getStorage = (key) => JSON.parse(localStorage.getItem(key) || '{}');
+        var setStorage = (key, val) => localStorage.setItem(key, JSON.stringify(val));
+
+        // 1. Tab & Theme
+        window.switchTab = function(tabName, elem) {
+            $('.nav-item').removeClass('active'); $(elem).addClass('active');
+            $('.panel').removeClass('active'); $('#panel-' + tabName).addClass('active');
+            if(tabName === 'license') renderLicenses();
+        };
+
+        window.selectTheme = function(elem) {
+            $('.theme-option').removeClass('selected'); $(elem).addClass('selected');
+            $(elem).find('input').prop('checked', true); form.render('radio');
+        };
+
+        // 2. Info Save
+        form.on('submit(save-info)', function(data){
+            var user = getStorage('gov_user'), curUser = getStorage('gov_current_user');
+            user.username = curUser.username = data.field.realname;
+            setStorage('gov_user', user); setStorage('gov_current_user', curUser);
+            layer.msg('信息已更新', {icon: 1, time: 1000}, () => recordLog('UPDATE', (curUser.username||'用户')+'修改了资料'));
+        });
+
+        // 3. UI Save
+        form.on('submit(save-ui)', function(){
+            setStorage('gov_ui_config', { theme: $('.theme-option.selected input').val() || 'blue', fontsize: $('input[name="fontsize"]:checked').val() });
+            layer.msg('设置已保存，正在应用...', {time: 1000}, () => location.reload());
+        });
+
+        // 4. Pwd Save
+        form.on('submit(save-pwd)', function(data){
+            var user = getStorage('gov_current_user'), userList = JSON.parse(localStorage.getItem('gov_user_list') || '[]');
+            var dbUser = userList.find(u => u.username === user.username) || user;
+
+            if(data.field.oldPwd !== (dbUser.password || '123456')) return layer.msg('当前密码输入错误', {icon: 2});
+            if(data.field.newPwd !== data.field.confirmPwd) return layer.msg('两次新密码输入不一致', {icon: 2});
+
+            dbUser.password = user.password = data.field.newPwd;
+            setStorage('gov_current_user', user);
+            if(userList.length > 0) {
+                var idx = userList.findIndex(u => u.username === user.username);
+                if(idx !== -1) userList[idx] = dbUser;
+                localStorage.setItem('gov_user_list', JSON.stringify(userList));
+            }
+
+            layer.msg('密码修改成功，请重新登录', {icon: 1, time: 2000}, function(){
+                localStorage.removeItem('gov_current_user'); window.location.href = 'login.html';
+            });
+        });
+
+        $('#upload-avatar').on('click', () => layer.msg('打开文件选择窗口...', {icon: 16, time: 1000}));
+
+        // 5. License Logic
+        if(!localStorage.getItem('gov_licenses')) setStorage('gov_licenses', [{type:'身份证', name:'居民身份证', date:'2023-01-01', color:'linear-gradient(135deg, #1890ff 0%, #0050b3 100%)'}]);
+
+        window.renderLicenses = function() {
+            var html = JSON.parse(localStorage.getItem('gov_licenses') || '[]').map((item, i) => `
+                <div class="layui-col-md6">
+                    <div style="background: ${item.color}; color:#fff; padding:24px; border-radius:8px; position:relative; box-shadow: 0 4px 12px rgba(0,0,0,0.15); overflow:hidden;">
+                        <div style="font-size:18px; font-weight:bold; letter-spacing:1px; margin-bottom:8px;">${item.name}</div>
+                        <div style="font-size:13px; opacity:0.85;">绑定日期：${item.date}</div>
+                        <i class="layui-icon layui-icon-vercode" style="position:absolute; right:20px; top:20px; font-size:48px; opacity:0.15;"></i>
+
+                        <div style="margin-top:24px; display:flex; justify-content:flex-end;">
+                            <button class="layui-btn layui-btn-xs" style="background:rgba(255,255,255,0.25); border:none; color:#fff;" onclick="viewLicense('${item.type}')">查看详情</button>
+                            <button class="layui-btn layui-btn-xs" style="background:rgba(0,0,0,0.2); border:none; color:#fff; margin-left:8px;" onclick="delLicense(${i})">解除绑定</button>
+                        </div>
+                    </div>
+                </div>`).join('');
+            $('#license-list').html(html);
+        }
+
+        $('#btn-add-license').on('click', function(){
+            layer.prompt({title: '请输入证照名称', formType: 0}, function(text, index){
+                layer.close(index);
+                var list = JSON.parse(localStorage.getItem('gov_licenses') || '[]');
+                list.push({ type: '其他', name: text, date: new Date().toLocaleDateString(), color: 'linear-gradient(135deg, #722ed1 0%, #eb2f96 100%)' });
+                setStorage('gov_licenses', list); renderLicenses(); layer.msg('添加成功', {icon: 1});
+            });
+        });
+
+        window.viewLicense = (name) => layer.open({
+            type: 1, title: name + ' - 预览', area: ['400px', '250px'], shadeClose: true,
+            skin: 'layui-layer-rim',
+            content: '<div style="display:flex; justify-content:center; align-items:center; height:100%; color:#999; flex-direction:column;"><i class="layui-icon layui-icon-file" style="font-size:48px; margin-bottom:10px;"></i>(证照预览内容)</div>'
+        });
+
+        window.delLicense = (index) => layer.confirm('确定要解除该证照的绑定吗？', {icon: 3, title:'提示'}, function(idx){
+            var list = JSON.parse(localStorage.getItem('gov_licenses') || '[]');
+            list.splice(index, 1); setStorage('gov_licenses', list); renderLicenses(); layer.close(idx); layer.msg('已解除绑定', {icon: 1});
+        });
+    });
+</script>
+</body>
+</html>

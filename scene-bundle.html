@@ -1,0 +1,288 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+    <meta charset="UTF-8">
+    <title>一件事打包办 - 智能政务助手</title>
+    <link rel="stylesheet" href="layui/css/layui.css">
+    <style>
+        :root {
+            /* 统一配色变量 */
+            --gov-primary: #1890ff;
+            --gov-bg: #f0f2f5;
+            --gov-white: #ffffff;
+            --text-main: #000000d9;
+            --text-secondary: #00000073;
+            --card-shadow: 0 1px 2px -2px rgba(0,0,0,0.16), 0 3px 6px 0 rgba(0,0,0,0.12), 0 5px 12px 4px rgba(0,0,0,0.09);
+        }
+
+        body {
+            background-color: var(--gov-bg);
+            /* 背景纹理 */
+            background-image: radial-gradient(#e6f7ff 1px, transparent 1px);
+            background-size: 20px 20px;
+            margin: 0; padding: 24px;
+            font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, "Helvetica Neue", Arial, sans-serif;
+            color: var(--text-main);
+        }
+
+        .container {
+            max-width: 900px; margin: 0 auto;
+            background: #fff; border-radius: 8px;
+            box-shadow: var(--card-shadow);
+            overflow: hidden; /* 裁剪头部圆角 */
+        }
+
+        /* 头部样式优化 */
+        .scene-header {
+            background: linear-gradient(135deg, #1890ff 0%, #0050b3 100%);
+            color: #fff; padding: 48px; position: relative;
+            overflow: hidden;
+        }
+
+        /* 装饰图标 */
+        .scene-icon-lg {
+            position: absolute; right: 40px; top: 50%; transform: translateY(-50%);
+            font-size: 120px; opacity: 0.15; color: #fff; pointer-events: none;
+        }
+
+        .scene-title { font-size: 32px; font-weight: 700; margin: 0 0 12px; letter-spacing: 1px; }
+        .scene-desc { font-size: 16px; opacity: 0.85; margin: 0; max-width: 600px; line-height: 1.6; }
+
+        /* 进度条优化 */
+        #progress-area { margin-top: 32px; max-width: 600px; }
+        .progress-container {
+            background: rgba(255,255,255,0.2); border-radius: 10px;
+            height: 8px; position: relative; overflow: hidden;
+        }
+        .progress-bar {
+            height: 100%; background: #52c41a; width: 0%;
+            transition: width 0.6s cubic-bezier(0.4, 0, 0.2, 1);
+            border-radius: 10px;
+            /* 增加微光动画 */
+            background-image: linear-gradient(45deg,rgba(255,255,255,.15) 25%,transparent 25%,transparent 50%,rgba(255,255,255,.15) 50%,rgba(255,255,255,.15) 75%,transparent 75%,transparent);
+            background-size: 1rem 1rem;
+        }
+        .progress-text { margin-top: 8px; font-size: 13px; opacity: 0.9; font-weight: 500; }
+
+        /* 任务列表优化 */
+        .task-list { padding: 32px; }
+
+        .task-item {
+            display: flex; align-items: center; padding: 24px;
+            border: 1px solid #f0f0f0; border-radius: 8px; margin-bottom: 16px;
+            transition: all 0.3s; background: #fff;
+        }
+        .task-item:hover {
+            box-shadow: 0 4px 12px rgba(0,0,0,0.08);
+            border-color: transparent;
+            transform: translateY(-2px);
+        }
+
+        .task-status {
+            width: 48px; height: 48px; border-radius: 50%;
+            background: #f5f5f5; display: flex; align-items: center; justify-content: center;
+            margin-right: 20px; color: #bfbfbf; flex-shrink: 0; font-size: 24px;
+            transition: all 0.3s;
+        }
+        .task-status.done { background: #f6ffed; color: #52c41a; border: 1px solid #b7eb8f; }
+
+        .task-info { flex: 1; }
+        .task-name { font-weight: 600; font-size: 16px; margin-bottom: 6px; color: #1f2937; }
+        .task-state-text { font-size: 13px; color: var(--text-secondary); }
+
+        .btn-apply { margin-left: 20px; padding: 0 24px; height: 36px; line-height: 36px; border-radius: 4px; font-size: 14px; }
+        .layui-btn-normal { background-color: var(--gov-primary); }
+        .layui-btn-disabled { background-color: #f5f5f5; color: #00000040; border: 1px solid #d9d9d9; }
+
+        /* 底部操作栏 */
+        .footer-action {
+            padding: 24px 32px; background: #fafafa; border-top: 1px solid #f0f0f0;
+            display: flex; justify-content: space-between; align-items: center;
+        }
+        .layui-btn-primary { border-color: #d9d9d9; background: #fff; }
+        .layui-btn-primary:hover { border-color: var(--gov-primary); color: var(--gov-primary); }
+        .btn-submit { background-color: #fa8c16; border-color: #fa8c16; height: 40px; line-height: 40px; font-size: 15px; padding: 0 32px; }
+        .btn-submit:hover { background-color: #ffc069; }
+    </style>
+</head>
+<body>
+
+<div class="container">
+    <div class="scene-header" id="scene-header">
+        <h1 class="scene-title" id="scene-title">加载中...</h1>
+        <p class="scene-desc" id="scene-desc">...</p>
+
+        <div id="progress-area" style="display:none;">
+            <div class="progress-container">
+                <div class="progress-bar" id="scene-progress"></div>
+            </div>
+            <div class="progress-text" id="scene-progress-text">办理进度 0%</div>
+        </div>
+
+        <i class="layui-icon layui-icon-app scene-icon-lg" id="scene-bg-icon"></i>
+    </div>
+
+    <div class="task-list" id="task-container">
+        </div>
+
+    <div class="footer-action">
+        <a href="index.html" class="layui-btn layui-btn-primary">返回首页</a>
+        <button class="layui-btn btn-submit layui-btn-normal" onclick="checkSubmit()">一键联办申请</button>
+    </div>
+</div>
+
+<script src="layui/layui.js"></script>
+<script src="ai.js" onerror="console.log('AI module loaded')"></script>
+<script>
+    // 1. 场景数据定义 (已补充完整)
+    const scenes = {
+        'birth': {
+            title: '新生儿出生“一件事”',
+            desc: '包含出生医学证明、预防接种证、户口登记、医保参保等联办服务。',
+            icon: 'layui-icon-baby',
+            theme: 'linear-gradient(135deg, #1890ff 0%, #0050b3 100%)', // 蓝色系
+            tasks: [
+                { name: '出生医学证明签发', url: 'service-apply.html?title=出生医学证明', done: true },
+                { name: '新生儿入户登记', url: 'service-apply.html?title=入户登记', done: false },
+                { name: '城乡居民医保参保', url: 'service-apply.html?title=新生儿医保', done: false }
+            ]
+        },
+        'house': {
+            title: '二手房置业“一件事”',
+            desc: '包含购房资格审核、网签、公积金贷款、不动产登记等服务。',
+            icon: 'layui-icon-home',
+            theme: 'linear-gradient(135deg, #fa8c16 0%, #d46b08 100%)', // 橙色系
+            tasks: [
+                { name: '购房资格核验', url: 'service-apply.html?title=购房资格核验', done: false },
+                { name: '公积金贷款申请', url: 'apply.html', done: false },
+                { name: '不动产转移登记', url: 'service-apply.html?title=不动产登记', done: false }
+            ]
+        },
+        'school': {
+            title: '义务教育入学“一件事”',
+            desc: '包含学区查询、学位申请、网上报名、录取结果查询等服务。',
+            icon: 'layui-icon-read',
+            theme: 'linear-gradient(135deg, #52c41a 0%, #237804 100%)', // 绿色系
+            tasks: [
+                { name: '学区与政策查询', url: 'service-apply.html?title=学区查询', done: true },
+                { name: '适龄儿童信息采集', url: 'service-apply.html?title=信息采集', done: false },
+                { name: '入学网上报名', url: 'service-apply.html?title=网上报名', done: false },
+                { name: '录取结果查询', url: 'service-apply.html?title=结果查询', done: false }
+            ]
+        },
+        'retire': {
+            title: '退休养老“一件事”',
+            desc: '包含基本养老金申领、退休公积金提取、老年人优待证办理等服务。',
+            icon: 'layui-icon-user',
+            theme: 'linear-gradient(135deg, #722ed1 0%, #531dab 100%)', // 紫色系
+            tasks: [
+                { name: '职工退休养老金核验', url: 'service-apply.html?title=养老金核验', done: false },
+                { name: '退休公积金提取', url: 'service-apply.html?title=公积金提取', done: false },
+                { name: '老年人优待证申领', url: 'service-apply.html?title=优待证申领', done: false }
+            ]
+        }
+    };
+
+    // 2. 初始化逻辑
+    const params = new URLSearchParams(window.location.search);
+    const sceneKey = params.get('scene') || 'birth'; // 默认 birth
+    const data = scenes[sceneKey];
+
+    if(data) {
+        renderScene(data);
+    } else {
+        document.querySelector('.container').innerHTML = `
+            <div style="padding: 120px 20px; text-align: center;">
+                <i class="layui-icon layui-icon-face-cry" style="font-size: 64px; color: #d9d9d9;"></i>
+                <p style="margin-top: 24px; color: #666; font-size: 16px;">您访问的办事场景不存在</p>
+                <div style="margin-top: 32px;">
+                    <a href="index.html" class="layui-btn layui-btn-primary">返回首页</a>
+                </div>
+            </div>
+        `;
+    }
+    // [新增辅助函数]：检查任务是否已办
+    function checkTaskStatus(taskName) {
+        var apps = JSON.parse(localStorage.getItem('gov_applications') || '[]');
+        // 只要有一条申请记录包含该任务名，且不是“已驳回”，就视为已办
+        return apps.some(app => app.service.includes(taskName) && app.status !== 2);
+    }
+
+    // 3. 渲染函数
+    function renderScene(data) {
+        document.getElementById('scene-title').innerText = data.title;
+        document.getElementById('scene-desc').innerText = data.desc;
+        document.getElementById('scene-bg-icon').className = `layui-icon ${data.icon} scene-icon-lg`;
+
+        // 动态设置头部背景色
+        if(data.theme) {
+            document.querySelector('.scene-header').style.background = data.theme;
+        }
+        // 动态更新 tasks 的 done 状态
+        data.tasks.forEach(t => {
+            // 如果是硬编码的 true 则保留，否则去数据库查
+            if (!t.done) {
+                t.done = checkTaskStatus(t.name);
+            }
+        });
+
+        // 计算进度
+        const total = data.tasks.length;
+        const finished = data.tasks.filter(t => t.done).length;
+        const percent = Math.round((finished / total) * 100);
+
+        // 渲染进度条
+        document.getElementById('progress-area').style.display = 'block';
+        document.getElementById('scene-progress').style.width = `${percent}%`;
+        document.getElementById('scene-progress-text').innerText = `当前办理进度：${finished}/${total}项 (${percent}%)`;
+
+        // 渲染列表
+        const html = data.tasks.map((task, index) => `
+            <div class="task-item">
+                <div class="task-status ${task.done ? 'done' : ''}">
+                    <i class="layui-icon ${task.done ? 'layui-icon-ok' : 'layui-icon-edit'}"></i>
+                </div>
+                <div class="task-info">
+                    <div class="task-name">${index + 1}. ${task.name}</div>
+                    <div class="task-state-text">
+                        ${task.done ? '<span style="color:#52c41a">已完成</span>' : '未办理'}
+                    </div>
+                </div>
+                <button class="layui-btn layui-btn-sm ${task.done ? 'layui-btn-disabled' : 'layui-btn-normal'} btn-apply"
+                        onclick="${task.done ? '' : `goTask('${task.url}')`}">
+                    ${task.done ? '查看凭证' : '去办理'}
+                </button>
+            </div>
+        `).join('');
+        document.getElementById('task-container').innerHTML = html;
+
+    }
+
+    // 4. 辅助函数
+    function goTask(url) {
+        location.href = url;
+    }
+
+    function checkSubmit() {
+        const finished = data.tasks.every(t => t.done);
+        layui.use('layer', function(){
+            var layer = layui.layer;
+            if(finished) {
+                layer.msg('所有前置任务已完成，正在提交联办申请...', {icon: 16, shade: 0.3, time: 2000}, function(){
+                    layer.msg('提交成功！请留意短信通知', {icon: 1});
+                });
+            } else {
+                layer.confirm('检测到您还有未完成的子任务，是否继续强制提交？<br><span style="color:#999;font-size:12px;">强制提交可能导致审核被驳回</span>', {
+                    btn: ['继续提交','去办理'],
+                    title: '温馨提示',
+                    icon: 3
+                }, function(index){
+                    layer.close(index);
+                    layer.msg('申请已提交，请等待审核', {icon: 1});
+                });
+            }
+        });
+    }
+</script>
+</body>
+</html>

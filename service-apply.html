@@ -1,0 +1,252 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>在线业务申报 - 智能政务助手</title>
+    <link rel="stylesheet" href="layui/css/layui.css">
+    <style>
+        :root {
+            /* 统一配色变量 */
+            --gov-primary: #1890ff;
+            --gov-primary-dark: #096dd9;
+            --gov-bg: #f0f2f5;
+            --gov-white: #ffffff;
+            --text-main: #000000d9;
+            --text-secondary: #00000073;
+            --border-color: #d9d9d9;
+            --card-shadow: 0 1px 2px -2px rgba(0,0,0,0.16), 0 3px 6px 0 rgba(0,0,0,0.12), 0 5px 12px 4px rgba(0,0,0,0.09);
+        }
+
+        body {
+            background-color: var(--gov-bg);
+            /* 背景纹理 */
+            background-image: radial-gradient(#e6f7ff 1px, transparent 1px);
+            background-size: 20px 20px;
+            padding: 24px;
+            font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, "Helvetica Neue", Arial, sans-serif;
+            color: var(--text-main);
+        }
+
+        /* 顶部导航 */
+        .top-nav {
+            height: 64px;
+            background: linear-gradient(90deg, #001529 0%, #003a8c 100%);
+            display: flex; align-items: center; justify-content: space-between;
+            padding: 0 24px; color: #fff;
+            box-shadow: 0 2px 8px rgba(0,0,0,0.15);
+            margin-bottom: 24px; border-radius: 4px;
+        }
+        .nav-title { font-size: 20px; font-weight: 600; display: flex; align-items: center; letter-spacing: 1px; }
+        .nav-link {
+            color: rgba(255,255,255,0.85); text-decoration: none; font-size: 14px;
+            display: flex; align-items: center; transition: all 0.3s;
+        }
+        .nav-link:hover { color: #fff; opacity: 1; transform: translateX(-2px); }
+
+        /* 面包屑 */
+        .breadcrumb-container {
+            background: #fff; padding: 16px 24px; margin-bottom: 24px;
+            border-radius: 4px; border: 1px solid #f0f0f0;
+            display: flex; align-items: center;
+        }
+        .layui-breadcrumb a { color: var(--text-secondary) !important; }
+        .layui-breadcrumb a:hover { color: var(--gov-primary) !important; }
+        .layui-breadcrumb cite { color: var(--text-main); font-weight: 500; }
+
+        /* 主体卡片 */
+        .apply-card {
+            max-width: 860px; margin: 0 auto;
+            background: #fff; padding: 48px;
+            border-radius: 8px; box-shadow: var(--card-shadow);
+            border: 1px solid #f0f0f0;
+        }
+
+        .page-header {
+            border-bottom: 1px solid #f0f0f0; padding-bottom: 24px; margin-bottom: 40px; text-align: center;
+        }
+        .page-title { font-size: 28px; font-weight: 600; color: #1f2937; margin-bottom: 12px; }
+        .page-sub { color: var(--text-secondary); font-size: 14px; display: flex; align-items: center; justify-content: center; }
+        .page-sub i { color: #fa8c16; margin-right: 6px; }
+
+        /* 表单样式优化 */
+        .layui-form-label { width: 100px; color: var(--text-main); font-weight: 500; }
+        .layui-input-block { margin-left: 130px; }
+
+        .layui-input, .layui-textarea {
+            border-radius: 4px; border-color: var(--border-color);
+            transition: all 0.3s;
+        }
+        .layui-input:focus, .layui-textarea:focus { border-color: var(--gov-primary); box-shadow: 0 0 0 2px rgba(24, 144, 255, 0.2); }
+
+        /* 只读输入框样式 */
+        .layui-input[readonly] {
+            background-color: #f5f7fa; color: var(--text-secondary); cursor: not-allowed;
+            border-color: #e8e8e8;
+        }
+
+        /* 上传区域优化 */
+        .upload-area {
+            border: 1px dashed #d9d9d9; border-radius: 6px;
+            padding: 24px; text-align: center; cursor: pointer;
+            transition: all 0.3s; background: #fafafa;
+        }
+        .upload-area:hover { border-color: var(--gov-primary); background: #f0f9ff; }
+        .upload-icon { font-size: 32px; color: #999; margin-bottom: 8px; transition: color 0.3s; }
+        .upload-area:hover .upload-icon { color: var(--gov-primary); }
+        .upload-text { font-size: 14px; color: var(--text-secondary); }
+
+        /* 底部按钮 */
+        .btn-submit {
+            background-color: var(--gov-primary); padding: 0 48px; height: 44px; line-height: 44px;
+            font-size: 16px; border-radius: 4px; transition: all 0.3s;
+            box-shadow: 0 2px 0 rgba(0,0,0,0.045);
+        }
+        .btn-submit:hover { background-color: var(--gov-primary-dark); box-shadow: 0 4px 10px rgba(24, 144, 255, 0.3); }
+
+        .btn-cancel { height: 44px; line-height: 44px; padding: 0 32px; border-radius: 4px; }
+
+        @media screen and (max-width: 768px) {
+            .apply-card { padding: 24px; }
+            .layui-input-block { margin-left: 0; }
+            .layui-form-label { width: auto; text-align: left; padding: 9px 0; }
+        }
+    </style>
+</head>
+<body>
+
+<div class="top-nav">
+    <div class="nav-title">
+        <i class="layui-icon layui-icon-template-1" style="margin-right: 12px; font-size: 24px; color: #69c0ff;"></i>智能政务助手
+    </div>
+    <div>
+        <a href="index.html" class="nav-link">
+            <i class="layui-icon layui-icon-return" style="margin-right: 6px;"></i> 返回首页
+        </a>
+    </div>
+</div>
+
+<div class="breadcrumb-container">
+    <span class="layui-breadcrumb">
+        <a href="index.html">首页</a>
+        <a href="guide.html">服务指南</a>
+        <a><cite>在线办理</cite></a>
+    </span>
+</div>
+
+<div class="apply-card">
+    <div class="page-header">
+        <h1 class="page-title" id="apply-title">业务申请</h1>
+        <p class="page-sub"><i class="layui-icon layui-icon-tips"></i> 请如实填写以下信息，虚假申报将承担法律责任</p>
+    </div>
+
+    <form class="layui-form" lay-filter="apply-form">
+        <div class="layui-form-item">
+            <label class="layui-form-label">申请人</label>
+            <div class="layui-input-block">
+                <input type="text" name="applicant" class="layui-input" readonly>
+            </div>
+        </div>
+        <div class="layui-form-item">
+            <label class="layui-form-label">联系电话</label>
+            <div class="layui-input-block">
+                <input type="text" name="phone" class="layui-input" readonly>
+            </div>
+        </div>
+
+        <div class="layui-form-item">
+            <label class="layui-form-label">申报事项</label>
+            <div class="layui-input-block">
+                <input type="text" name="serviceName" id="service-name-input" class="layui-input" readonly style="color: var(--gov-primary); font-weight: 500;">
+            </div>
+        </div>
+
+        <div class="layui-form-item layui-form-text">
+            <label class="layui-form-label">备注说明</label>
+            <div class="layui-input-block">
+                <textarea name="remarks" placeholder="如有特殊情况请在此说明..." class="layui-textarea" style="min-height: 120px;"></textarea>
+            </div>
+        </div>
+
+        <div class="layui-form-item">
+            <label class="layui-form-label">材料上传</label>
+            <div class="layui-input-block">
+                <div class="upload-area" id="btn-upload">
+                    <i class="layui-icon layui-icon-upload-drag upload-icon"></i>
+                    <div class="upload-text">点击上传证明材料 (支持 PDF/IMG)</div>
+                </div>
+                <div id="upload-list" style="margin-top: 12px; color: #52c41a; font-size: 13px; display: flex; align-items: center;"></div>
+            </div>
+        </div>
+
+        <div class="layui-form-item" style="margin-top: 48px; text-align: center;">
+            <button class="layui-btn btn-submit" lay-submit lay-filter="submit-apply">立即提交</button>
+            <button type="button" class="layui-btn layui-btn-primary btn-cancel" onclick="history.back()">取消</button>
+        </div>
+    </form>
+</div>
+
+<script src="layui/layui.js"></script>
+<script src="ai.js" onerror="console.log('AI module loaded')"></script>
+<script>
+    layui.use(['form', 'layer', 'element', 'upload'], function(){
+        var form = layui.form;
+        var layer = layui.layer;
+        var element = layui.element;
+        var $ = layui.$;
+
+        // 1. 获取当前用户 (保持原逻辑)
+        var user = JSON.parse(localStorage.getItem('gov_current_user'));
+        if(!user) {
+            layer.msg('请先登录', {icon: 2, time: 1500}, function(){ location.href='login.html' });
+            return;
+        }
+
+        // 2. 自动填表 (保持原逻辑)
+        form.val('apply-form', {
+            "applicant": user.username,
+            "phone": user.phone
+        });
+
+        // 3. 解析 URL 参数 (保持原逻辑)
+        var params = new URLSearchParams(window.location.search);
+        var title = params.get('title') || '通用业务';
+        $('#apply-title').text(title + ' - 在线办理');
+        $('#service-name-input').val(title);
+
+        // 4. 模拟上传 (保持原逻辑，优化显示)
+        $('#btn-upload').click(function(){
+            layer.msg('模拟上传成功', {icon: 1});
+            $('#upload-list').html('<i class="layui-icon layui-icon-file" style="margin-right:5px;"></i> 身份证扫描件.jpg <span style="color:#999; margin-left:5px;">(已上传)</span>');
+        });
+
+        // 5. 提交逻辑 (核心：写入 LocalStorage - 保持原逻辑)
+        form.on('submit(submit-apply)', function(data){
+            var load = layer.load(2, {shade: 0.3});
+            setTimeout(function(){
+                layer.close(load);
+                
+                var application = {
+                    id: 'APP' + new Date().getTime(),
+                    service: title,
+                    applicant: user.username,
+                    applyTime: new Date().toLocaleString(),
+                    status: 0, // 0: 待审核, 1: 已通过, 2: 已驳回
+                    remarks: data.field.remarks
+                };
+
+                // 存入数据库
+                var apps = JSON.parse(localStorage.getItem('gov_applications') || '[]');
+                apps.unshift(application);
+                localStorage.setItem('gov_applications', JSON.stringify(apps));
+
+                layer.msg('提交成功，请前往【我的办件】查看进度', {icon: 1, time: 2000}, function(){
+                    location.href = 'my-affairs.html'; // 跳转到进度页
+                });
+            }, 1000);
+            return false;
+        });
+    });
+</script>
+</body>
+</html>

@@ -1,0 +1,385 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>一件事一次办 - 智能申报</title>
+    <link rel="stylesheet" href="layui/css/layui.css">
+    <style>
+        :root {
+            /* 统一配色体系 */
+            --gov-primary: #1890ff;
+            --gov-primary-dark: #096dd9;
+            --gov-bg: #f0f2f5;
+            --gov-white: #ffffff;
+            --success-color: #52c41a;
+            --text-main: #000000d9;
+            --text-secondary: #00000073;
+            --border-color: #f0f0f0;
+            --card-shadow: 0 1px 2px -2px rgba(0,0,0,0.16), 0 3px 6px 0 rgba(0,0,0,0.12), 0 5px 12px 4px rgba(0,0,0,0.09);
+        }
+
+        body {
+            font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, "Helvetica Neue", Arial, sans-serif;
+            background-color: var(--gov-bg);
+            background-image: radial-gradient(#e6f7ff 1px, transparent 1px);
+            background-size: 20px 20px;
+            margin: 0; padding: 0;
+            color: var(--text-main);
+        }
+
+        /* 顶部导航 */
+        .step-header {
+            background: #fff;
+            padding: 24px 0;
+            box-shadow: 0 2px 8px rgba(0,0,0,0.08);
+            position: sticky; top: 0; z-index: 100;
+        }
+
+        /* 步骤条容器 */
+        .step-container {
+            width: 900px; max-width: 95%; margin: 0 auto;
+            display: flex; justify-content: space-between; align-items: center;
+            position: relative;
+        }
+
+        /* 连接线 */
+        .step-line-bg {
+            position: absolute; top: 16px; left: 50px; right: 50px;
+            height: 2px; background: #f0f0f0; z-index: 0;
+        }
+
+        .step-item {
+            position: relative; z-index: 1; text-align: center;
+            background: transparent;
+            flex: 1;
+            display: flex; flex-direction: column; align-items: center;
+        }
+
+        .step-num {
+            width: 32px; height: 32px;
+            background: #fff; border: 2px solid #d9d9d9;
+            color: var(--text-secondary);
+            border-radius: 50%;
+            line-height: 28px; /* line-height = height - border*2 */
+            font-weight: 500;
+            transition: all 0.3s;
+            margin-bottom: 8px;
+            box-sizing: border-box;
+        }
+
+        .step-title { font-size: 14px; color: var(--text-secondary); transition: color 0.3s; font-weight: 400; }
+
+        /* 激活状态 */
+        .step-item.active .step-num {
+            background: var(--gov-primary);
+            border-color: var(--gov-primary);
+            color: #fff;
+            box-shadow: 0 0 0 4px rgba(24, 144, 255, 0.2);
+        }
+        .step-item.active .step-title { color: #1f2937; font-weight: 600; }
+
+        /* 完成状态 */
+        .step-item.finished .step-num {
+            background: #fff;
+            border-color: var(--gov-primary);
+            color: var(--gov-primary);
+        }
+        .step-item.finished .step-title { color: var(--text-secondary); }
+
+        /* 主体卡片 */
+        .main-card {
+            width: 860px; max-width: 92%; margin: 40px auto;
+            background: #fff; border-radius: 8px;
+            padding: 48px 60px;
+            box-shadow: var(--card-shadow);
+            min-height: 500px;
+            box-sizing: border-box;
+        }
+
+        .page-header { border-bottom: 1px solid #f0f0f0; padding-bottom: 24px; margin-bottom: 32px; }
+        .page-title { font-size: 24px; font-weight: 600; color: #1f2937; margin-bottom: 8px; }
+        .page-desc { color: var(--text-secondary); font-size: 14px; }
+
+        /* 内容区域动画 */
+        .step-content { display: none; animation: fadeIn 0.4s ease-out; }
+        .step-content.current { display: block; }
+        @keyframes fadeIn { from { opacity: 0; transform: translateY(10px); } to { opacity: 1; transform: translateY(0); } }
+
+        /* OCR 识别框优化 */
+        .ocr-card {
+            background: #f0f7ff;
+            border: 1px dashed var(--gov-primary);
+            border-radius: 6px;
+            padding: 20px 24px;
+            margin-bottom: 32px;
+            display: flex; align-items: center; justify-content: space-between;
+            transition: all 0.3s;
+        }
+        .ocr-card:hover { box-shadow: 0 2px 8px rgba(24, 144, 255, 0.15); }
+
+        .ocr-text h4 { color: var(--gov-primary); font-size: 16px; font-weight: 600; margin-bottom: 4px; }
+        .ocr-text p { font-size: 13px; color: var(--text-secondary); margin: 0; }
+
+        .input-disabled { background: #f5f5f5; color: rgba(0,0,0,0.45); cursor: not-allowed; }
+        .input-highlight { background-color: #f6ffed !important; border-color: #b7eb8f; transition: all 1s; }
+
+        /* 上传组件优化 */
+        .upload-box {
+            border: 1px dashed #d9d9d9;
+            border-radius: 6px;
+            padding: 40px 20px;
+            text-align: center;
+            cursor: pointer;
+            transition: all 0.3s;
+            background: #fafafa;
+        }
+        .upload-box:hover {
+            border-color: var(--gov-primary);
+            background: #f0f9ff;
+        }
+        .upload-icon { font-size: 32px; color: #999; margin-bottom: 12px; transition: color 0.3s; }
+        .upload-box:hover .upload-icon { color: var(--gov-primary); }
+        .upload-text { font-size: 14px; color: var(--text-secondary); margin: 0; }
+
+        .tips-box {
+            margin-top: 24px;
+            background: #fffbe6;
+            padding: 12px 16px;
+            border: 1px solid #ffe58f;
+            color: #fa8c16;
+            border-radius: 4px;
+            font-size: 13px;
+            display: flex; align-items: center;
+        }
+        .tips-box i { margin-right: 8px; font-size: 16px; }
+
+        /* 成功页优化 */
+        .success-box { text-align: center; padding: 40px 0; }
+        .success-icon { font-size: 72px; color: var(--success-color); margin-bottom: 24px; }
+        .success-title { font-size: 24px; font-weight: 600; color: #1f2937; margin-bottom: 16px; }
+        .app-code { color: var(--gov-primary); font-weight: 600; font-family: monospace; font-size: 16px; }
+
+        /* 底部操作栏 */
+        .footer-action {
+            margin-top: 48px; padding-top: 24px; border-top: 1px solid #f0f0f0;
+            display: flex; justify-content: center; gap: 16px;
+        }
+        .footer-btn {
+            width: 140px; height: 40px; font-size: 14px; border-radius: 4px;
+            transition: all 0.3s;
+        }
+        .btn-prev { background: #fff; border: 1px solid #d9d9d9; color: var(--text-main); }
+        .btn-prev:hover { border-color: var(--gov-primary); color: var(--gov-primary); }
+        .btn-next { background: var(--gov-primary); border: none; color: #fff; }
+        .btn-next:hover { background: var(--gov-primary-dark); box-shadow: 0 4px 10px rgba(24, 144, 255, 0.3); }
+
+        /* 覆盖 Layui 样式 */
+        .layui-form-label { width: 100px; color: var(--text-main); }
+        .layui-input-block { margin-left: 130px; }
+        .layui-input, .layui-select { height: 38px; border-radius: 4px; }
+        .layui-input:focus, .layui-select:focus { border-color: var(--gov-primary) !important; box-shadow: 0 0 0 2px rgba(24, 144, 255, 0.2); }
+
+        @media screen and (max-width: 768px) {
+            .step-container { width: 100%; padding: 0 10px; }
+            .step-line-bg { display: none; }
+            .main-card { padding: 30px 20px; margin: 20px auto; width: 95%; }
+            .layui-input-block { margin-left: 0; }
+            .layui-form-label { width: auto; padding: 9px 0; text-align: left; }
+            .footer-action { flex-direction: column-reverse; }
+            .footer-btn { width: 100%; }
+        }
+    </style>
+</head>
+<body>
+
+<div class="step-header">
+    <div class="step-container">
+        <div class="step-line-bg"></div>
+
+        <div class="step-item active" id="s-1">
+            <div class="step-num">1</div>
+            <div class="step-title">基本信息</div>
+        </div>
+        <div class="step-item" id="s-2">
+            <div class="step-num">2</div>
+            <div class="step-title">材料上传</div>
+        </div>
+        <div class="step-item" id="s-3">
+            <div class="step-num">3</div>
+            <div class="step-title">确认提交</div>
+        </div>
+    </div>
+</div>
+
+<div class="main-card">
+    <div class="page-header">
+        <h2 class="page-title" id="page-title">公积金提取申请</h2>
+        <p class="page-desc">请核对个人信息并上传相关证明材料，全程预计耗时 2 分钟。</p>
+    </div>
+
+    <div class="step-content current" id="content-1">
+        <form class="layui-form">
+            <div class="ocr-card">
+                <div class="ocr-text">
+                    <h4>📸 智能免填单</h4>
+                    <p>上传身份证照片，系统自动识别并填充信息</p>
+                </div>
+                <button type="button" class="layui-btn layui-btn-normal layui-btn-sm" onclick="document.getElementById('ocr-file').click()" style="background: var(--gov-primary);">
+                    <i class="layui-icon layui-icon-upload-drag"></i> 识别填充
+                </button>
+                <input type="file" id="ocr-file" style="display: none;" onchange="handleOCR(this)">
+            </div>
+
+            <div class="layui-form-item">
+                <label class="layui-form-label">申请人</label>
+                <div class="layui-input-block">
+                    <input type="text" name="name" class="layui-input input-disabled" disabled>
+                </div>
+            </div>
+            <div class="layui-form-item">
+                <label class="layui-form-label">身份证号</label>
+                <div class="layui-input-block">
+                    <input type="text" name="idcard" class="layui-input input-disabled" disabled>
+                </div>
+            </div>
+            <div class="layui-form-item">
+                <label class="layui-form-label">提取类型</label>
+                <div class="layui-input-block">
+                    <select name="type">
+                        <option value="1">购房提取</option>
+                        <option value="2">租房提取</option>
+                        <option value="3">退休提取</option>
+                    </select>
+                </div>
+            </div>
+            <div class="layui-form-item">
+                <label class="layui-form-label">银行卡号</label>
+                <div class="layui-input-block">
+                    <input type="text" name="card" placeholder="请输入收款的一类银行卡号" class="layui-input">
+                </div>
+            </div>
+        </form>
+    </div>
+
+    <div class="step-content" id="content-2">
+        <div class="layui-row layui-col-space20">
+            <div class="layui-col-md6">
+                <div class="upload-box" onclick="layui.layer.msg('模拟上传身份证正面', {icon: 1})">
+                    <i class="layui-icon layui-icon-upload upload-icon"></i>
+                    <p class="upload-text">点击上传身份证正面</p>
+                </div>
+            </div>
+            <div class="layui-col-md6">
+                <div class="upload-box" onclick="layui.layer.msg('模拟上传购房合同', {icon: 1})">
+                    <i class="layui-icon layui-icon-file upload-icon"></i>
+                    <p class="upload-text">点击上传购房合同/发票</p>
+                </div>
+            </div>
+        </div>
+        <div class="tips-box">
+            <i class="layui-icon layui-icon-tips"></i>
+            <span>智能提示：系统已自动关联您的电子证照，无需重复提交户口簿。</span>
+        </div>
+    </div>
+
+    <div class="step-content success-box" id="content-3">
+        <i class="layui-icon layui-icon-ok-circle success-icon"></i>
+        <h2 class="success-title">提交成功</h2>
+        <p style="color: #666; margin-bottom: 8px;">您的申请编号：<span class="app-code">GJJ20231024009</span></p>
+        <p style="color: #999; font-size: 13px;">预计将在 3 个工作日内完成审核，请留意短信通知。</p>
+    </div>
+
+    <div class="footer-action">
+        <button class="layui-btn footer-btn btn-prev" id="btn-prev" style="display:none;" onclick="changeStep(-1)">上一步</button>
+        <button class="layui-btn footer-btn btn-next" id="btn-next" onclick="changeStep(1)">下一步</button>
+        <a href="index.html" class="layui-btn footer-btn btn-prev" id="btn-home" style="display:none; text-align:center; line-height:40px; text-decoration:none;">返回首页</a>
+    </div>
+</div>
+
+<script src="layui/layui.js"></script>
+<script src="ai.js" onerror="console.log('AI module loaded')"></script>
+<script>
+    layui.use(['layer', 'form'], function(){
+        var layer = layui.layer, $ = layui.$;
+        var currentStep = 1;
+
+        // 1. 初始化用户信息 (保持原逻辑)
+        var user = JSON.parse(localStorage.getItem('gov_current_user') || '{"username":"李市民","phone":"13800008888"}');
+        $('input[name="name"]').val(user.username);
+        $('input[name="idcard"]').val("11010119900101****");
+
+        // 2. OCR 模拟 (保持原逻辑)
+        window.handleOCR = function(input) {
+            if(!input.files || !input.files[0]) return;
+            var loadIndex = layer.msg('正在识别证件信息...', {icon: 16, shade: 0.3, time: 0});
+
+            setTimeout(function(){
+                layer.close(loadIndex);
+                var mockData = { name: '李市民', idcard: '110105199508081234' };
+
+                var $inputs = $('input[name="name"], input[name="idcard"]');
+                $inputs.val(function(i, v) { return i===0 ? mockData.name : mockData.idcard; })
+                       .removeClass('input-disabled')
+                       .addClass('input-highlight');
+
+                setTimeout(() => $inputs.removeClass('input-highlight').addClass('input-disabled'), 2000);
+                layer.msg('识别成功！已自动填充', {icon: 1});
+
+                if(typeof recordLog === 'function') recordLog('OCR', '用户使用了身份证智能识别功能');
+            }, 1500);
+        };
+
+        // 3. 步骤控制器 (保持原逻辑)
+        window.changeStep = function(direction) {
+            if(direction === 1 && currentStep === 2) {
+                // 提交逻辑
+                var load = layer.load(2, {shade: 0.3});
+                setTimeout(function(){
+                    layer.close(load);
+                    updateUI(3);
+                }, 1000);
+            } else {
+                updateUI(currentStep + direction);
+            }
+        };
+
+        function updateUI(step) {
+            currentStep = step;
+            // 切换内容
+            $('.step-content').removeClass('current');
+            $('#content-' + step).addClass('current');
+
+            // 切换顶部进度
+            for(var i=1; i<=3; i++) {
+                var $el = $('#s-' + i);
+                $el.removeClass('active finished');
+                if(i < step) $el.addClass('finished');
+                if(i === step) $el.addClass('active');
+            }
+
+            // 切换按钮
+            var $prev = $('#btn-prev'), $next = $('#btn-next'), $home = $('#btn-home');
+
+            // 使用 flex 布局控制显示隐藏
+            if (step === 1) {
+                $prev.hide();
+                $home.hide();
+                $next.show().text('下一步');
+            } else if (step === 2) {
+                $prev.show();
+                $home.hide();
+                $next.show().text('确认提交');
+            } else if (step === 3) {
+                $prev.hide();
+                $next.hide();
+                $home.css('display', 'inline-block'); // Layui 按钮通常是 inline-block
+            }
+
+            // 滚动到顶部
+            window.scrollTo({ top: 0, behavior: 'smooth' });
+        }
+    });
+</script>
+</body>
+</html>

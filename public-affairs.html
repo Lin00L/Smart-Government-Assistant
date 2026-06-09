@@ -1,0 +1,349 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>政务公开 - 阳光政务</title>
+    <link rel="stylesheet" href="layui/css/layui.css">
+    <style>
+        :root {
+            /* 统一配色变量 */
+            --gov-primary: #1890ff;
+            --gov-primary-dark: #096dd9;
+            --gov-bg: #f0f2f5;
+            --gov-white: #ffffff;
+            --text-main: #000000d9;
+            --text-secondary: #00000073;
+            --border-color: #f0f0f0;
+            --card-shadow: 0 1px 2px -2px rgba(0,0,0,0.16), 0 3px 6px 0 rgba(0,0,0,0.12), 0 5px 12px 4px rgba(0,0,0,0.09);
+        }
+
+        body {
+            font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, "Helvetica Neue", Arial, sans-serif;
+            background-color: var(--gov-bg);
+            margin: 0; padding: 0;
+            color: var(--text-main);
+        }
+
+        /* 顶部通栏优化 */
+        .header-banner {
+            background: linear-gradient(135deg, #001529 0%, #003a8c 100%);
+            padding: 64px 0 100px; /* 增加底部留白给搜索框 */
+            color: #fff; text-align: center;
+            position: relative; overflow: hidden;
+        }
+        .header-banner::after {
+            content: ''; position: absolute; top: 0; left: 0; width: 100%; height: 100%;
+            background-image: radial-gradient(rgba(255,255,255,0.1) 1px, transparent 1px);
+            background-size: 30px 30px; opacity: 0.3; pointer-events: none;
+        }
+
+        .banner-title { font-size: 36px; font-weight: 700; margin: 0 0 12px; letter-spacing: 2px; }
+        .banner-desc { font-size: 16px; opacity: 0.8; font-weight: 300; letter-spacing: 1px; }
+
+        .search-box {
+            max-width: 640px; margin: 32px auto 0; position: relative;
+            box-shadow: 0 8px 20px rgba(0,0,0,0.15); border-radius: 4px;
+        }
+        .search-input {
+            height: 56px; border-radius: 4px; border: none; padding-left: 24px;
+            font-size: 16px; width: 100%; box-sizing: border-box; outline: none;
+        }
+        .search-btn {
+            position: absolute; right: 6px; top: 6px; border-radius: 4px;
+            height: 44px; width: 100px; background: var(--gov-primary);
+            border: none; font-size: 16px; cursor: pointer; transition: background 0.3s;
+        }
+        .search-btn:hover { background: var(--gov-primary-dark); }
+
+        /* 主体布局 */
+        .main-container {
+            width: 1200px; max-width: 95%; margin: -40px auto 40px;
+            display: flex; gap: 24px; position: relative; z-index: 10;
+        }
+
+        /* 左侧菜单 */
+        .sidebar {
+            width: 260px; background: #fff; border-radius: 8px; overflow: hidden;
+            box-shadow: var(--card-shadow); flex-shrink: 0; align-self: flex-start;
+        }
+        .menu-title {
+            background: #fafafa; padding: 16px 24px; font-weight: 600; font-size: 16px;
+            border-bottom: 1px solid #f0f0f0; color: #1f2937;
+        }
+        .menu-item {
+            padding: 14px 24px; cursor: pointer; border-left: 3px solid transparent;
+            transition: all 0.3s; color: var(--text-main); display: flex;
+            justify-content: space-between; align-items: center; font-size: 14px;
+        }
+        .menu-item:hover { background: #f0f7ff; color: var(--gov-primary); }
+        .menu-item.active {
+            background: #e6f7ff; color: var(--gov-primary);
+            border-left-color: var(--gov-primary); font-weight: 500;
+        }
+        .menu-item i { font-size: 16px; opacity: 0.7; }
+
+        /* 右侧内容 */
+        .content {
+            flex: 1; background: #fff; border-radius: 8px; padding: 32px;
+            box-shadow: var(--card-shadow); min-height: 600px;
+        }
+
+        /* 面包屑优化 */
+        .layui-breadcrumb { visibility: visible; font-size: 14px; }
+        .layui-breadcrumb a { color: var(--text-secondary) !important; }
+        .layui-breadcrumb a:hover { color: var(--gov-primary) !important; }
+        .layui-breadcrumb cite { color: var(--text-main); font-weight: 500; }
+
+        /* 列表头 */
+        .list-header {
+            border-bottom: 1px solid #f0f0f0; padding-bottom: 16px; margin-bottom: 24px;
+            display: flex; justify-content: space-between; align-items: flex-end;
+        }
+        .list-title {
+            font-size: 20px; font-weight: 600; color: #1f2937; position: relative; padding-left: 12px; line-height: 1;
+        }
+        .list-title::before {
+            content: ''; position: absolute; left: 0; top: 2px; bottom: 2px;
+            width: 4px; background: var(--gov-primary); border-radius: 2px;
+        }
+
+        /* 文件列表 */
+        .doc-list { list-style: none; padding: 0; margin: 0; }
+        .doc-item {
+            padding: 16px 0; border-bottom: 1px dashed #e8e8e8;
+            display: flex; align-items: center; cursor: pointer; transition: all 0.3s;
+        }
+        .doc-item:last-child { border-bottom: none; }
+        .doc-item:hover { background: #fafafa; padding-left: 10px; padding-right: 10px; border-radius: 4px; }
+
+        .doc-title { flex: 1; font-size: 15px; color: #1f2937; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+        .doc-item:hover .doc-title { color: var(--gov-primary); }
+
+        .doc-meta { font-size: 13px; color: var(--text-secondary); margin-left: 24px; min-width: 240px; text-align: right; }
+
+        .tag { padding: 2px 8px; border-radius: 2px; font-size: 12px; margin-right: 8px; border: 1px solid transparent; }
+        .tag-new { background: #fff1f0; color: #ff4d4f; border-color: #ffa39e; }
+        .tag-policy { background: #e6f7ff; color: #1890ff; border-color: #91d5ff; }
+
+        /* 图解政策卡片 */
+        .interpret-grid { display: grid; grid-template-columns: repeat(3, 1fr); gap: 24px; margin-top: 24px; display: none; }
+        .pic-card {
+            border: 1px solid #f0f0f0; border-radius: 8px; overflow: hidden; cursor: pointer; transition: all 0.3s;
+            background: #fff;
+        }
+        .pic-card:hover { transform: translateY(-4px); box-shadow: 0 4px 12px rgba(0,0,0,0.1); border-color: transparent; }
+
+        .pic-img {
+            height: 140px; background: #f5f7fa; display: flex; align-items: center; justify-content: center;
+            color: #1890ff; font-size: 48px; opacity: 0.8; transition: opacity 0.3s;
+        }
+        .pic-card:hover .pic-img { opacity: 1; background: #f0f5ff; }
+
+        .pic-info { padding: 16px; }
+        .pic-title { font-weight: 600; margin-bottom: 8px; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; color: #1f2937; }
+        .pic-date { font-size: 12px; color: var(--text-secondary); }
+
+        /* 响应式 */
+        @media screen and (max-width: 900px) {
+            .main-container { flex-direction: column; width: 100%; margin: 0; }
+            .sidebar { width: 100%; border-radius: 0; }
+            .content { border-radius: 0; box-shadow: none; }
+            .interpret-grid { grid-template-columns: 1fr; }
+            .doc-meta { display: none; } /* 移动端隐藏日期 */
+        }
+    </style>
+</head>
+<body>
+
+<div class="header-banner">
+    <div class="banner-title">政务信息公开平台</div>
+    <div class="banner-desc">阳光 · 透明 · 服务 · 效能</div>
+
+    <div class="search-box">
+        <input type="text" placeholder="请输入文件名称、文号或关键字" class="layui-input search-input">
+        <button class="layui-btn layui-btn-normal search-btn"><i class="layui-icon layui-icon-search"></i> 搜 索</button>
+    </div>
+</div>
+
+<div class="main-container">
+    <div class="sidebar">
+        <div class="menu-title">公开目录</div>
+        <div class="menu-item active" onclick="switchTab('files', this)">
+            <span>政策文件</span> <i class="layui-icon layui-icon-right"></i>
+        </div>
+        <div class="menu-item" onclick="switchTab('interpret', this)">
+            <span>政策解读</span> <i class="layui-icon layui-icon-picture"></i>
+        </div>
+        <div class="menu-item" onclick="switchTab('notice', this)">
+            <span>通知公告</span> <i class="layui-icon layui-icon-speaker"></i>
+        </div>
+        <div class="menu-item" onclick="switchTab('personnel', this)">
+            <span>人事信息</span> <i class="layui-icon layui-icon-friends"></i>
+        </div>
+
+        <div class="menu-title" style="margin-top: 10px;">重点领域</div>
+        <div class="menu-item" onclick="layer.msg('跳转至财政专题')">财政资金</div>
+        <div class="menu-item" onclick="layer.msg('跳转至住房专题')">住房保障</div>
+    </div>
+
+    <div class="content">
+        <span class="layui-breadcrumb" style="margin-bottom: 24px; display: block;">
+            <a href="index.html">首页</a>
+            <a href="javascript:;">政务公开</a>
+            <a><cite id="crumb-current">政策文件</cite></a>
+        </span>
+
+        <div id="view-list">
+            <div class="list-header">
+                <div class="list-title" id="list-title">最新政策文件</div>
+                <span style="font-size: 13px; color: var(--text-secondary); cursor: pointer; display: flex; align-items: center;">
+                    按时间排序 <i class="layui-icon layui-icon-down" style="font-size: 12px; margin-left: 4px;"></i>
+                </span>
+            </div>
+
+            <ul class="doc-list" id="doc-container">
+                </ul>
+            <div id="pagination" style="text-align: center; margin-top: 40px;"></div>
+        </div>
+
+        <div id="view-interpret" class="interpret-grid">
+            </div>
+    </div>
+</div>
+
+<script src="layui/layui.js"></script>
+<script src="ai.js" onerror="console.log('AI module loaded')"></script>
+<script>
+    layui.use(['laypage', 'layer', 'element'], function(){
+        var laypage = layui.laypage;
+        var layer = layui.layer;
+        var $ = layui.$;
+
+        // 模拟数据 (保持原逻辑)
+        var files = [
+            {title: '关于印发《数字政府建设三年行动计划（2024-2026年）》的通知', dept: '市政府办公室', date: '2023-10-25', tag: 'new'},
+            {title: '市人力资源社会保障局关于调整工伤保险费率的通知', dept: '市人社局', date: '2023-10-24', tag: 'policy'},
+            {title: '关于开展2024年度高新技术企业认定工作的通知', dept: '市科技局', date: '2023-10-22', tag: ''},
+            {title: '市教育局关于做好2024年义务教育招生入学工作的意见', dept: '市教育局', date: '2023-10-20', tag: 'policy'},
+            {title: '关于进一步优化营商环境降低市场主体制度性交易成本的实施意见', dept: '市发改委', date: '2023-10-18', tag: ''},
+            {title: '市住房公积金管理中心关于调整住房公积金缴存基数的通告', dept: '公积金中心', date: '2023-10-15', tag: ''}
+        ];
+
+        var interprets = [
+            {title: '一图读懂：数字政府三年行动计划', date: '2023-10-26'},
+            {title: '【视频】工伤保险费率调整政策问答', date: '2023-10-25'},
+            {title: '高新技术企业认定申报指南图解', date: '2023-10-23'}
+        ];
+
+        // 渲染列表 (保持原逻辑)
+        function renderList(data) {
+            var html = '';
+            data.forEach(item => {
+                var tagHtml = item.tag === 'new' ? '<span class="tag tag-new">最新</span>' :
+                              (item.tag === 'policy' ? '<span class="tag tag-policy">政策</span>' : '');
+                html += `
+                <li class="doc-item" onclick="viewDetail('${item.title}')">
+                    <div class="doc-title">${tagHtml} ${item.title}</div>
+                    <div class="doc-meta">
+                        <span style="background:#f5f5f5; padding:2px 6px; border-radius:2px; margin-right:10px;">${item.dept}</span>
+                        <span>${item.date}</span>
+                    </div>
+                </li>`;
+            });
+            $('#doc-container').html(html);
+        }
+
+        // 渲染图解 (保持原逻辑)
+        function renderInterpret() {
+            var html = '';
+            interprets.forEach(item => {
+                html += `
+                <div class="pic-card" onclick="viewDetail('${item.title}')">
+                    <div class="pic-img"><i class="layui-icon layui-icon-picture"></i></div>
+                    <div class="pic-info">
+                        <div class="pic-title">${item.title}</div>
+                        <div class="pic-date"><i class="layui-icon layui-icon-time" style="font-size:12px;"></i> ${item.date}</div>
+                    </div>
+                </div>`;
+            });
+            $('#view-interpret').html(html);
+        }
+
+        renderList(files);
+        renderInterpret();
+
+        // 分页
+        laypage.render({
+            elem: 'pagination',
+            count: 50,
+            theme: '#1890ff',
+            layout: ['prev', 'page', 'next', 'skip'],
+            jump: function(obj, first){
+                if(!first){
+                    layer.msg('第 '+ obj.curr +' 页', {time: 800});
+                }
+            }
+        });
+
+        // 切换 Tab (保持原逻辑)
+        window.switchTab = function(type, el) {
+            $('.menu-item').removeClass('active');
+            $(el).addClass('active');
+
+            if(type === 'interpret') {
+                $('#view-list').hide();
+                $('#view-interpret').css('display', 'grid');
+                $('#crumb-current').text('政策解读');
+            } else {
+                $('#view-interpret').hide();
+                $('#view-list').show();
+
+                var titleMap = {
+                    'files': '最新政策文件',
+                    'notice': '通知公告公示',
+                    'personnel': '人事任免信息'
+                };
+                $('#list-title').text(titleMap[type]);
+                $('#crumb-current').text(titleMap[type]);
+
+                renderList(files);
+            }
+        };
+
+        // 查看详情 (保持原逻辑)
+        window.viewDetail = function(title) {
+            layer.open({
+                type: 1,
+                title: false, // 隐藏默认标题栏
+                area: ['900px', '80%'],
+                shadeClose: true,
+                skin: 'layui-layer-rim',
+                content: `
+                    <div style="padding: 48px; font-family: 'Songti SC', 'SimSun', serif;">
+                        <h2 style="text-align:center; font-weight:bold; font-size:24px; margin-bottom:16px; color:#cf1322; font-family: 'SimHei', sans-serif;">${title}</h2>
+
+                        <div style="text-align:center; color:#666; border-bottom:1px solid #cf1322; padding-bottom:16px; margin-bottom:32px; font-size:14px;">
+                            <span style="margin:0 10px;">发布机构：市政府办公室</span>
+                            <span style="margin:0 10px;">发布日期：2023-10-25</span>
+                            <span style="margin:0 10px;">文号：市府办〔2023〕12号</span>
+                        </div>
+
+                        <div style="line-height:1.8; font-size:16px; color:#333;">
+                            <p><strong>各区人民政府，市政府各部门：</strong></p>
+                            <p style="text-indent: 2em; margin-top:16px;">现将《数字政府建设三年行动计划（2024-2026年）》印发给你们，请认真贯彻执行。</p>
+                            <p style="text-indent: 2em; margin-top:16px;">（此处为文件正文模拟内容...）为全面提升政府治理现代化水平，加快建设数字政府，特制定本计划。主要目标是到2026年，实现政务服务“一网通办”、市域治理“一网统管”、政府运行“一网协同”...</p>
+
+                            <div style="margin-top:60px; text-align:right; font-family: 'KaiTi', serif; font-size:18px;">
+                                <p>市政府办公室</p>
+                                <p>2023年10月25日</p>
+                            </div>
+                        </div>
+                    </div>
+                `
+            });
+        };
+    });
+</script>
+</body>
+</html>

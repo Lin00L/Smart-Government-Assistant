@@ -1,0 +1,394 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>政务服务指南 - 智能政务助手</title>
+    <link rel="stylesheet" href="layui/css/layui.css">
+    <style>
+        :root {
+            /* 统一配色变量 */
+            --gov-primary: #1890ff;
+            --gov-primary-dark: #096dd9;
+            --gov-bg: #f0f2f5;
+            --gov-white: #ffffff;
+            --text-main: #000000d9;
+            --text-secondary: #00000073;
+            --border-color: #f0f0f0;
+            --sidebar-width: 280px;
+            --header-height: 64px;
+            --card-shadow: 0 1px 2px -2px rgba(0,0,0,0.16), 0 3px 6px 0 rgba(0,0,0,0.12), 0 5px 12px 4px rgba(0,0,0,0.09);
+        }
+
+        body {
+            font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, "Helvetica Neue", Arial, sans-serif;
+            background-color: var(--gov-bg);
+            /* 背景纹理 */
+            background-image: radial-gradient(#e6f7ff 1px, transparent 1px);
+            background-size: 20px 20px;
+            margin: 0; padding: 0;
+            color: var(--text-main);
+            height: 100vh;
+            display: flex; flex-direction: column; overflow: hidden;
+        }
+
+        /* 顶部导航 */
+        .app-header {
+            height: var(--header-height);
+            background: linear-gradient(90deg, #001529 0%, #003a8c 100%);
+            display: flex; align-items: center; justify-content: space-between;
+            padding: 0 24px; color: #fff;
+            box-shadow: 0 2px 8px rgba(0,0,0,0.15);
+            flex-shrink: 0; z-index: 200;
+        }
+        .header-brand { font-size: 20px; font-weight: 600; display: flex; align-items: center; letter-spacing: 1px; }
+        .header-link {
+            color: rgba(255,255,255,0.85); text-decoration: none; font-size: 14px;
+            display: flex; align-items: center; transition: all 0.3s;
+        }
+        .header-link:hover { color: #fff; opacity: 1; transform: translateX(-2px); }
+
+        /* 移动端Header */
+        .mobile-header {
+            display: none; height: 50px; background: #fff; align-items: center; padding: 0 16px;
+            box-shadow: 0 1px 3px rgba(0,0,0,0.1); flex-shrink: 0; border-bottom: 1px solid #f0f0f0;
+        }
+        .mobile-header-title { font-weight: 600; color: #1f2937; margin-left: 12px; font-size: 16px; }
+
+        /* 主容器 */
+        .main-container { display: flex; flex: 1; height: 100%; overflow: hidden; position: relative; }
+
+        /* 左侧侧边栏 */
+        .sidebar-tree {
+            width: var(--sidebar-width); background: #fff;
+            border-right: 1px solid var(--border-color);
+            display: flex; flex-direction: column; flex-shrink: 0;
+            transition: transform 0.3s cubic-bezier(0.2, 0, 0, 1);
+            z-index: 100;
+            box-shadow: 2px 0 8px rgba(0,0,0,0.02);
+        }
+
+        .tree-header {
+            padding: 20px 24px 15px;
+            font-weight: 600; font-size: 16px;
+            color: #1f2937; border-bottom: 1px solid #f0f0f0;
+            background: #fff;
+        }
+        .tree-header i { color: var(--gov-primary); margin-right: 8px; }
+
+        .search-box { padding: 16px 24px 8px; }
+        .search-box input {
+            border-radius: 4px; border-color: #d9d9d9; background: #fafafa; transition: all 0.3s;
+        }
+        .search-box input:focus { background: #fff; border-color: var(--gov-primary); box-shadow: 0 0 0 2px rgba(24, 144, 255, 0.2); }
+
+        .tree-body { flex: 1; overflow-y: auto; padding: 12px 0; }
+
+        /* Layui Tree 样式覆盖 */
+        .layui-tree-entry { height: 40px; border-radius: 0 4px 4px 0; margin-right: 12px; }
+        .layui-tree-txt { color: var(--text-main); font-size: 14px; }
+        .layui-tree-entry:hover { background-color: #f5f5f5; }
+        .layui-tree-set.layui-this > .layui-tree-entry { background-color: #e6f7ff; border-right: 3px solid var(--gov-primary); }
+        .layui-tree-set.layui-this > .layui-tree-entry .layui-tree-txt { color: var(--gov-primary); font-weight: 500; }
+        .layui-tree-icon { border-color: #d9d9d9; }
+
+        /* 右侧详情 */
+        .detail-content { flex: 1; overflow-y: auto; padding: 24px; scroll-behavior: smooth; }
+        .content-card {
+            background: #fff; border-radius: 8px; padding: 48px;
+            box-shadow: var(--card-shadow);
+            max-width: 960px; margin: 0 auto;
+            min-height: 80%;
+        }
+
+        /* 详情组件 */
+        .service-header { border-bottom: 1px solid #f0f0f0; padding-bottom: 24px; margin-bottom: 32px; }
+        .service-title { font-size: 28px; font-weight: 600; color: #1f2937; margin-bottom: 20px; letter-spacing: 0.5px; }
+
+        .meta-tags { display: flex; gap: 12px; flex-wrap: wrap; }
+        .tag-item {
+            background: #f5f5f5; color: var(--text-secondary);
+            padding: 6px 12px; border-radius: 4px; font-size: 13px;
+            display: flex; align-items: center; border: 1px solid #e8e8e8;
+        }
+        .tag-item i { margin-right: 6px; font-size: 14px; }
+        .tag-free { background: #f6ffed; color: #52c41a; border-color: #b7eb8f; }
+
+        .section-title {
+            font-size: 18px; font-weight: 600; color: #1f2937;
+            margin: 48px 0 24px 0;
+            display: flex; align-items: center;
+        }
+        .section-title::before {
+            content: ''; display: inline-block; width: 4px; height: 18px;
+            background: var(--gov-primary); margin-right: 12px; border-radius: 2px;
+        }
+        .section-title i { color: var(--text-secondary); font-size: 18px; margin-right: 8px; }
+
+        /* 流程步骤优化 */
+        .process-steps {
+            display: flex; justify-content: space-between; margin-bottom: 32px; position: relative;
+            padding: 0 20px;
+        }
+        .process-steps::before {
+            content: ''; position: absolute; top: 16px; left: 40px; right: 40px; height: 2px; background: #f0f0f0; z-index: 0;
+        }
+        .step-item { position: relative; z-index: 1; text-align: center; background: #fff; padding: 0 10px; }
+        .step-circle {
+            width: 34px; height: 34px; background: #fff; border: 2px solid #d9d9d9; color: #999;
+            border-radius: 50%; display: flex; align-items: center; justify-content: center;
+            margin: 0 auto 10px auto; font-weight: 600; transition: all 0.3s;
+        }
+        .step-item.active .step-circle { background: var(--gov-primary); border-color: var(--gov-primary); color: #fff; box-shadow: 0 0 0 4px rgba(24, 144, 255, 0.2); }
+        .step-text { font-size: 14px; font-weight: 500; color: var(--text-secondary); }
+        .step-item.active .step-text { color: #1f2937; font-weight: 600; }
+
+        .process-list { background: #fafafa; padding: 24px; border-radius: 8px; border: 1px solid #f0f0f0; }
+        .process-list ol { margin: 0; padding-left: 20px; color: var(--text-main); line-height: 1.8; }
+        .process-list li { margin-bottom: 8px; }
+
+        /* 表格与按钮 */
+        .material-table-container { border: 1px solid #f0f0f0; border-radius: 8px; overflow: hidden; box-shadow: 0 2px 4px rgba(0,0,0,0.02); }
+        .layui-table { margin: 0; }
+        .layui-table thead tr { background-color: #fafafa; color: #1f2937; font-weight: 600; }
+        .layui-table td, .layui-table th { border-color: #f0f0f0; padding: 12px 15px; }
+
+        .download-btn {
+            margin-top: 16px; display: inline-flex; align-items: center;
+            color: var(--gov-primary); border: 1px solid var(--gov-primary);
+            padding: 8px 24px; border-radius: 4px; background: #fff;
+            cursor: pointer; transition: all 0.3s; font-size: 14px;
+        }
+        .download-btn:hover { background: var(--gov-primary); color: #fff; box-shadow: 0 4px 10px rgba(24, 144, 255, 0.3); }
+
+        /* 办理渠道 */
+        .channel-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 24px; }
+        .channel-card {
+            border: 1px solid #f0f0f0; padding: 24px; border-radius: 8px; transition: all 0.3s;
+            background: #fff; position: relative;
+        }
+        .channel-card:hover { border-color: var(--gov-primary); box-shadow: 0 4px 12px rgba(0,0,0,0.08); transform: translateY(-2px); }
+        .channel-title { font-weight: 600; margin-bottom: 12px; display: flex; align-items: center; font-size: 16px; }
+        .channel-info { font-size: 14px; color: var(--text-secondary); line-height: 1.6; }
+
+        .link-btn {
+            display: inline-block; margin-top: 16px;
+            color: #fff; background: var(--gov-primary);
+            padding: 8px 20px; border-radius: 4px; text-decoration: none;
+            font-size: 13px; transition: background 0.3s;
+        }
+        .link-btn:hover { background: var(--gov-primary-dark); }
+
+        /* 折叠面板美化 */
+        .layui-colla-item { border-color: #f0f0f0; margin-bottom: -1px; }
+        .layui-colla-title { background: #fafafa; color: #1f2937; font-weight: 500; height: 48px; line-height: 48px; }
+        .layui-colla-content { color: var(--text-secondary); line-height: 1.8; border-color: #f0f0f0; }
+
+        .mobile-menu-toggle { display: none; }
+
+        @media screen and (max-width: 768px) {
+            .mobile-header { display: flex; justify-content: space-between; }
+            .mobile-menu-toggle { display: block; font-size: 20px; cursor: pointer; color: var(--text-main); }
+
+            .sidebar-tree { position: fixed; left: -280px; height: 100%; top: 50px; bottom: 0; box-shadow: 4px 0 12px rgba(0,0,0,0.1); }
+            .sidebar-tree.show { transform: translateX(280px); }
+
+            .detail-content { padding: 15px; }
+            .content-card { padding: 24px; border-radius: 0; box-shadow: none; }
+
+            .process-steps { flex-wrap: wrap; gap: 15px; padding: 0; }
+            .process-steps::before { display: none; }
+            .step-item { width: 100%; margin-bottom: 0; text-align: left; display: flex; align-items: center; }
+            .step-circle { margin: 0 12px 0 0; width: 28px; height: 28px; font-size: 12px; }
+
+            .channel-grid { grid-template-columns: 1fr; gap: 15px; }
+        }
+    </style>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/echarts/5.4.3/echarts.min.js"></script>
+    <script>
+        // 主题配置
+        (function(){
+            var config = JSON.parse(localStorage.getItem('gov_ui_config') || '{}');
+            if(config.theme === 'gray') {
+                var style = document.createElement('style');
+                style.innerHTML = `:root { --gov-primary: #595959 !important; --gov-primary-dark: #262626 !important; } .app-header { background: #1f1f1f !important; }`;
+                document.head.appendChild(style);
+            }
+            if(config.fontsize === 'large') document.body.classList.add('font-large');
+        })();
+    </script>
+</head>
+<body>
+
+<div class="app-header">
+    <div class="header-brand"><i class="layui-icon layui-icon-template-1" style="margin-right: 12px; font-size: 26px; color: #69c0ff;"></i>智能政务助手</div>
+    <div><a href="index.html" class="header-link"><i class="layui-icon layui-icon-return" style="margin-right: 6px;"></i> 返回首页</a></div>
+</div>
+
+<div class="mobile-header">
+    <i class="layui-icon layui-icon-spread-left mobile-menu-toggle" id="menu-btn"></i>
+    <span class="mobile-header-title">政务服务指南</span>
+    <div style="width: 20px;"></div> </div>
+
+<div class="main-container">
+    <aside class="sidebar-tree" id="sidebar">
+        <div class="tree-header">
+            <i class="layui-icon layui-icon-app"></i> 服务事项分类
+        </div>
+        <div class="search-box">
+            <input type="text" id="tree-search" placeholder="输入关键词搜索服务..." class="layui-input">
+        </div>
+        <div class="tree-body">
+            <div id="serviceTree"></div>
+        </div>
+    </aside>
+
+    <main class="detail-content">
+        <div class="content-card" id="detail-view">
+            <div class="service-header">
+                <h1 class="service-title">社会保障卡（社保卡）申领</h1>
+                <div class="meta-tags">
+                    <div class="tag-item"><i class="layui-icon layui-icon-template-1"></i> 办理部门：市人力资源和社会保障局</div>
+                    <div class="tag-item"><i class="layui-icon layui-icon-time"></i> 办结时限：15个工作日</div>
+                    <div class="tag-item tag-free"><i class="layui-icon layui-icon-rmb"></i> 收费标准：免费（首次申领）</div>
+                </div>
+            </div>
+
+            <div class="section-title"><i class="layui-icon layui-icon-tabs"></i> 办事流程</div>
+            <div class="process-steps">
+                <div class="step-item active"><div class="step-circle">1</div><div class="step-text">提交申请</div></div>
+                <div class="step-item active"><div class="step-circle">2</div><div class="step-text">资格审核</div></div>
+                <div class="step-item"><div class="step-circle">3</div><div class="step-text">制卡</div></div>
+                <div class="step-item"><div class="step-circle">4</div><div class="step-text">领卡启用</div></div>
+            </div>
+            <div class="process-list">
+                <ol>
+                    <li><strong>申请：</strong>申请人通过线上渠道或线下网点提交有效身份证件照片及相关信息。</li>
+                    <li><strong>审核：</strong>社保中心对提交的信息进行核验（约3个工作日）。</li>
+                    <li><strong>制卡：</strong>审核通过后进入制卡环节（约10个工作日）。</li>
+                    <li><strong>领取：</strong>收到领卡通知后，携带身份证原件前往指定网点领卡并激活金融功能。</li>
+                </ol>
+            </div>
+
+            <div class="section-title"><i class="layui-icon layui-icon-list"></i> 材料清单</div>
+            <div class="material-table-container">
+                <table class="layui-table" lay-skin="line">
+                    <colgroup><col width="300"><col width="120"><col></colgroup>
+                    <thead><tr><th>材料名称</th><th>属性</th><th>备注说明</th></tr></thead>
+                    <tbody>
+                        <tr><td>本人有效身份证件原件</td><td><span class="layui-badge-dot layui-bg-red"></span> 必填</td><td>居民身份证或户口簿</td></tr>
+                        <tr><td>一寸白底彩色证件照</td><td><span class="layui-badge-dot layui-bg-red"></span> 必填</td><td>电子版或纸质版一张</td></tr>
+                        <tr><td>代办人身份证件</td><td><span class="layui-badge-dot layui-bg-gray"></span> 选填</td><td>仅在委托他人代办时需要提供</td></tr>
+                    </tbody>
+                </table>
+            </div>
+            <button class="download-btn"><i class="layui-icon layui-icon-download-circle" style="margin-right: 6px;"></i> 下载材料清单及样表</button>
+
+            <div class="section-title"><i class="layui-icon layui-icon-location"></i> 办理渠道</div>
+            <div class="channel-grid">
+                <div class="channel-card">
+                    <div class="channel-title"><i class="layui-icon layui-icon-home" style="color:var(--gov-primary); margin-right:8px; font-size: 20px;"></i> 线下窗口</div>
+                    <div class="channel-info"><p>地址：市民之家A区2楼社保服务大厅</p><p>时间：工作日 09:00-12:00, 13:30-17:00</p><p>电话：010-12333</p></div>
+                </div>
+                <div class="channel-card">
+                    <div class="channel-title"><i class="layui-icon layui-icon-website" style="color:#52c41a; margin-right:8px; font-size: 20px;"></i> 线上办理</div>
+                    <div class="channel-info">
+                        <p>支持PC端及APP端在线申领，邮寄到家。</p>
+                        <a href="javascript:;" onclick="goToApply()" class="link-btn">立即跳转办理 <i class="layui-icon layui-icon-right"></i></a>
+                    </div>
+                </div>
+            </div>
+
+            <div class="section-title"><i class="layui-icon layui-icon-help"></i> 常见问题</div>
+            <div class="layui-collapse" lay-accordion style="border: 1px solid #f0f0f0;">
+                <div class="layui-colla-item"><h2 class="layui-colla-title">1. 儿童如何办理社保卡？</h2><div class="layui-colla-content layui-show">未满16周岁的未成年人，由监护人携带双方身份证件（户口簿）及监护关系证明代为办理。</div></div>
+                <div class="layui-colla-item"><h2 class="layui-colla-title">2. 换发新卡期间，旧卡还能用吗？</h2><div class="layui-colla-content">在领取新卡并激活之前，旧社保卡的医保功能通常可以正常使用。新卡激活后，旧卡自动失效。</div></div>
+                <div class="layui-colla-item"><h2 class="layui-colla-title">3. 首次办卡收费吗？</h2><div class="layui-colla-content">根据相关政策，首次申领社会保障卡免收工本费。如因遗失补办，可能需要缴纳工本费20元。</div></div>
+            </div>
+            <div style="height: 50px;"></div>
+        </div>
+    </main>
+</div>
+
+<script src="layui/layui.js"></script>
+<script src="ai.js" onerror="console.log('AI module loaded')"></script>
+<script>
+    layui.use(['tree', 'element', 'layer'], function(){
+        var $ = layui.$, tree = layui.tree, layer = layui.layer;
+
+        // 模拟数据库 (保持原逻辑)
+        var serviceDB = {
+            111: { title: '社保卡申领', dept: '人社局', time: '15工作日', content: '这是社保卡申领的具体流程...' },
+            211: { title: '营业执照办理', dept: '市场监管局', time: '3工作日', content: '这是企业开办的具体流程...' }
+        };
+
+        var data = [{
+            title: '个人服务', id: 1, spread: true,
+            children: [{
+                title: '民生保障', id: 11, spread: true,
+                children: [{title: '社保办理', id: 111, checked: true}, {title: '医疗卫生', id: 112}, {title: '住房保障', id: 113}]
+            }, {
+                title: '证件办理', id: 12, children: [{title: '身份证', id: 121}, {title: '护照通行证', id: 122}]
+            }]
+        }, {
+            title: '企业服务', id: 2, children: [{ title: '营商环境', id: 21, children: [{title: '营业执照', id: 211}, {title: '税务登记', id: 212}] }]
+        }];
+
+        tree.render({
+            elem: '#serviceTree', data: data, onlyIconControl: true,
+            click: function(obj){
+                if(!obj.data.children){
+                    var detail = serviceDB[obj.data.id];
+                    $('.service-title').text(detail ? detail.title : obj.data.title);
+                    if(detail) layer.msg('已加载：' + detail.title, {icon: 16, time: 800});
+                    else layer.msg('暂无详细数据');
+                    // 移动端点击后收起侧边栏
+                    if($(window).width() <= 768) $('#sidebar').removeClass('show');
+                }
+            }
+        });
+
+        // 绑定搜索辅助点击事件
+        $('#ai-copilot-entry').on('click', function(){ $('#ai-panel').fadeToggle(); });
+
+        $('#tree-search').on('input', function(){
+            var value = $(this).val();
+            if(!value) { $('.layui-tree-txt').css('color', ''); return; }
+
+            // 模拟 AI 提示
+            setTimeout(function(){
+                var pageTitle = $('.service-title').text() || document.title;
+                if($('#ai-tips').length) {
+                   $('#ai-tips').text('遇到困难？问问关于“' + pageTitle + '”的问题').fadeIn().delay(5000).fadeOut();
+                }
+            }, 2000);
+
+            var found = false;
+            $('.layui-tree-txt').each(function(){
+                var text = $(this).text();
+                if(text.indexOf(value) >= 0) {
+                    $(this).css('color', '#ff4d4f').parents('.layui-tree-set').addClass('layui-tree-spread');
+                    if(!found) { $(this)[0].scrollIntoView({behavior: "smooth", block: "center"}); found = true; }
+                } else {
+                    $(this).css('color', '');
+                }
+            });
+        });
+
+        $('#menu-btn').on('click', function(e){
+            e.stopPropagation();
+            $('#sidebar').toggleClass('show');
+            var isShow = $('#sidebar').hasClass('show');
+            $(this).toggleClass('layui-icon-spread-left', !isShow).toggleClass('layui-icon-shrink-right', isShow);
+        });
+
+        $(document).on('click', function(){ if($(window).width() <= 768) $('#sidebar').removeClass('show'); });
+        $('#sidebar').on('click', function(e){ e.stopPropagation(); });
+
+        window.goToApply = function() {
+            window.location.href = 'service-apply.html?title=' + encodeURIComponent($('.service-title').text());
+        };
+    });
+</script>
+</body>
+</html>

@@ -1,0 +1,555 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>智能政务助手 - 首页</title>
+    <link rel="stylesheet" href="layui/css/layui.css">
+    <style>
+        :root {
+            --gov-primary: #1890ff;
+            --gov-primary-light: #e6f7ff;
+            --gov-primary-dark: #0050b3;
+            --text-main: #1f2937;
+            --text-secondary: #6b7280;
+            --bg-body: #f5f7fa;
+            --card-radius: 12px;
+            --shadow-lg: 0 20px 25px -5px rgba(0, 0, 0, 0.1), 0 10px 10px -5px rgba(0, 0, 0, 0.04);
+            --shadow-md: 0 4px 6px -1px rgba(0, 0, 0, 0.1), 0 2px 4px -1px rgba(0, 0, 0, 0.06);
+        }
+
+        body {
+            font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, "Helvetica Neue", Arial, sans-serif;
+            background-color: var(--bg-body);
+            color: var(--text-main);
+            margin: 0;
+            overflow-x: hidden;
+        }
+
+        /* --- 1. 顶部导航栏 (Glassmorphism) --- */
+        .navbar {
+            height: 64px;
+            background: rgba(255, 255, 255, 0.9);
+            backdrop-filter: blur(10px);
+            position: fixed;
+            top: 0; left: 0; right: 0;
+            z-index: 1000;
+            box-shadow: 0 1px 3px rgba(0,0,0,0.05);
+            display: flex;
+            align-items: center;
+            padding: 0 40px;
+            justify-content: space-between;
+        }
+
+        .brand {
+            display: flex; align-items: center; font-size: 22px; font-weight: 700; color: var(--gov-primary);
+            letter-spacing: 1px;
+        }
+        .brand i { font-size: 28px; margin-right: 12px; }
+
+        .nav-right { display: flex; align-items: center; gap: 24px; }
+        .nav-time { font-size: 14px; color: var(--text-secondary); font-variant-numeric: tabular-nums; }
+
+        .user-action { display: flex; align-items: center; cursor: pointer; }
+        .user-avatar { width: 36px; height: 36px; border-radius: 50%; background: var(--gov-primary); color: #fff; display: flex; align-items: center; justify-content: center; margin-right: 10px; font-size: 18px; }
+        .user-name { font-weight: 600; font-size: 14px; }
+
+        /* 下拉菜单 */
+        .dropdown-menu {
+            position: absolute; top: 70px; right: 40px; width: 160px;
+            background: #fff; border-radius: 8px; box-shadow: var(--shadow-lg);
+            display: none; flex-direction: column; overflow: hidden; animation: slideDown 0.2s ease-out;
+        }
+        .dropdown-item { padding: 12px 20px; font-size: 14px; color: var(--text-main); display: flex; align-items: center; text-decoration: none; transition: 0.2s; }
+        .dropdown-item:hover { background: var(--gov-primary-light); color: var(--gov-primary); }
+        .dropdown-item i { margin-right: 10px; }
+
+        /* --- 2. 沉浸式 Hero 区域 --- */
+        .hero-section {
+            padding-top: 64px; /* Offset for navbar */
+            height: 480px;
+            background: linear-gradient(120deg, #001529 0%, #003a8c 100%);
+            position: relative;
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            justify-content: center;
+            color: #fff;
+            text-align: center;
+            overflow: hidden;
+        }
+
+        /* 动态背景纹理 */
+        .hero-bg-pattern {
+            position: absolute; top: 0; left: 0; width: 100%; height: 100%;
+            background-image: radial-gradient(rgba(255,255,255,0.1) 1px, transparent 1px);
+            background-size: 40px 40px;
+            opacity: 0.5;
+        }
+        .hero-circle {
+            position: absolute; width: 600px; height: 600px; background: radial-gradient(circle, rgba(24,144,255,0.2) 0%, rgba(0,0,0,0) 70%);
+            border-radius: 50%; top: -100px; right: -100px; pointer-events: none;
+        }
+
+        .hero-content { position: relative; z-index: 10; width: 100%; max-width: 800px; padding-bottom: 60px; }
+        .hero-title { font-size: 36px; font-weight: 700; margin-bottom: 12px; }
+        .hero-sub { font-size: 16px; opacity: 0.9; margin-bottom: 40px; font-weight: 300; }
+
+        /* 搜索框增强 */
+        .search-wrapper {
+            position: relative; width: 100%; max-width: 680px; margin: 0 auto;
+        }
+        .global-search-input {
+            width: 100%; height: 64px; border-radius: 32px; border: none;
+            padding: 0 140px 0 32px; font-size: 18px;
+            box-shadow: 0 8px 24px rgba(0,0,0,0.2);
+            transition: all 0.3s; box-sizing: border-box;
+        }
+        .global-search-input:focus { box-shadow: 0 12px 32px rgba(24,144,255,0.4); transform: scale(1.01); outline: none; }
+        .global-search-btn {
+            position: absolute; right: 8px; top: 8px; height: 48px; width: 120px;
+            border-radius: 24px; border: none; background: var(--gov-primary);
+            color: #fff; font-size: 16px; font-weight: 600; cursor: pointer;
+            transition: background 0.3s;
+        }
+        .global-search-btn:hover { background: var(--gov-primary-dark); }
+
+        .hot-search { margin-top: 20px; font-size: 13px; opacity: 0.8; }
+        .hot-search span { margin: 0 8px; cursor: pointer; border-bottom: 1px dashed rgba(255,255,255,0.5); }
+
+        /* --- 3. 悬浮功能卡片 (Main Container) --- */
+        .main-content {
+            max-width: 1200px; margin: -80px auto 40px; position: relative; z-index: 20;
+            padding: 0 20px;
+        }
+
+        /* 快捷入口栏 */
+        /* 找到 .quick-access-bar 修改 grid-template-columns */
+        .quick-access-bar {
+            background: #fff; border-radius: var(--card-radius); padding: 30px 20px; /* 调整左右内边距 */
+            box-shadow: var(--shadow-lg);
+            display: grid;
+            grid-template-columns: repeat(6, 1fr); /* 改为 6 列 */
+            gap: 10px; /*稍微减小间距以适应 6 个 */
+            margin-bottom: 30px;
+        }
+        /* 增加移动端适配 */
+        @media screen and (max-width: 900px) {
+            .quick-access-bar { grid-template-columns: repeat(3, 1fr); gap: 20px; }
+        }
+        .access-item {
+            display: flex; flex-direction: column; align-items: center; cursor: pointer;
+            transition: transform 0.3s; padding: 10px; border-radius: 8px;
+        }
+        .access-item:hover { background: #f9fafb; transform: translateY(-5px); }
+        .access-icon {
+            width: 56px; height: 56px; border-radius: 16px; background: #e6f7ff; color: var(--gov-primary);
+            display: flex; align-items: center; justify-content: center; font-size: 28px; margin-bottom: 12px;
+            transition: all 0.3s;
+        }
+        .access-item:hover .access-icon { background: var(--gov-primary); color: #fff; box-shadow: 0 4px 12px rgba(24,144,255,0.3); }
+        .access-text { font-weight: 600; color: var(--text-main); font-size: 15px; }
+
+        /* 智能通知横幅 */
+        .smart-banner {
+            background: linear-gradient(90deg, #fff 0%, #f0f7ff 100%);
+            border-left: 6px solid var(--gov-primary);
+            border-radius: 8px; padding: 20px 30px;
+            display: flex; align-items: center; justify-content: space-between;
+            box-shadow: var(--shadow-md); margin-bottom: 30px;
+        }
+        .smart-content h3 { font-size: 18px; margin: 0 0 5px; font-weight: 700; color: #1f2937; display: flex; align-items: center; }
+        .smart-content p { margin: 0; color: var(--text-secondary); font-size: 14px; }
+        .smart-btn {
+            padding: 8px 24px; background: #fff; border: 1px solid var(--gov-primary);
+            color: var(--gov-primary); border-radius: 20px; font-weight: 600; cursor: pointer;
+            transition: 0.3s; text-decoration: none;
+        }
+        .smart-btn:hover { background: var(--gov-primary); color: #fff; }
+
+        /* --- 4. 场景服务与分类 --- */
+        .section-header { display: flex; align-items: center; justify-content: space-between; margin-bottom: 24px; margin-top: 40px; }
+        .section-title { font-size: 24px; font-weight: 700; color: #111827; position: relative; padding-left: 16px; }
+        .section-title::before { content: ''; position: absolute; left: 0; top: 6px; bottom: 6px; width: 6px; background: var(--gov-primary); border-radius: 3px; }
+
+        /* 场景卡片网格 */
+        .scene-grid { display: grid; grid-template-columns: repeat(4, 1fr); gap: 24px; }
+        .scene-item {
+            background: #fff; border-radius: 12px; padding: 30px; position: relative;
+            box-shadow: var(--shadow-md); transition: all 0.3s; cursor: pointer; border: 1px solid transparent;
+            overflow: hidden;
+        }
+        .scene-item:hover { transform: translateY(-8px); box-shadow: var(--shadow-lg); border-color: var(--gov-primary-light); }
+        .scene-item-icon {
+            width: 64px; height: 64px; border-radius: 50%; background: #f0f9ff;
+            display: flex; align-items: center; justify-content: center; font-size: 32px;
+            color: var(--gov-primary); margin-bottom: 20px;
+        }
+        .scene-item h4 { font-size: 18px; font-weight: 700; margin: 0 0 8px; }
+        .scene-item p { color: var(--text-secondary); font-size: 13px; line-height: 1.5; margin: 0; }
+
+        /* 装饰背景字 */
+        .scene-bg-text {
+            position: absolute; right: -10px; bottom: -10px; font-size: 80px; font-weight: 900;
+            color: rgba(0,0,0,0.03); pointer-events: none; z-index: 0;
+        }
+
+        /* 底部 */
+        .footer { text-align: center; padding: 40px 0; color: var(--text-secondary); font-size: 14px; margin-top: 40px; border-top: 1px solid #e5e7eb; }
+
+        /* 响应式 */
+        @media screen and (max-width: 900px) {
+            .navbar { padding: 0 20px; }
+            .hero-section { height: 400px; padding-top: 64px; }
+            .hero-title { font-size: 28px; }
+            .search-wrapper { max-width: 90%; }
+            .quick-access-bar { grid-template-columns: repeat(3, 1fr); }
+            .scene-grid { grid-template-columns: repeat(2, 1fr); }
+            .nav-right, .nav-time { display: none; } /* 简化移动端导航 */
+            .user-info { margin: 0; }
+            .notice-bell { display: block; }
+        }
+    </style>
+</head>
+<body>
+
+<nav class="navbar">
+    <div class="brand"><i class="layui-icon layui-icon-template-1"></i> 智能政务助手</div>
+    <div class="nav-right">
+        <span class="nav-time" id="header-time"></span>
+
+        <div class="notice-bell" id="btn-notice" style="position:relative; cursor:pointer;">
+            <i class="layui-icon layui-icon-notice" style="font-size: 22px;"></i>
+            <span class="notice-dot" id="notice-dot" style="position:absolute; top:0; right:0; width:8px; height:8px; background:red; border-radius:50%; display:none;"></span>
+        </div>
+
+        <div class="user-action" id="user-menu-trigger">
+            <div class="user-avatar"><i class="layui-icon layui-icon-username"></i></div>
+            <span class="user-name" id="username-display">用户</span>
+            <i class="layui-icon layui-icon-down" style="font-size: 12px; margin-left: 6px;"></i>
+        </div>
+    </div>
+
+    <div class="dropdown-menu" id="user-dropdown">
+        <a href="profile.html" class="dropdown-item"><i class="layui-icon layui-icon-user"></i> 个人中心</a>
+        <a href="admin.html" class="dropdown-item admin-tag" style="display:none;"><i class="layui-icon layui-icon-set"></i> 系统管理</a>
+        <div style="border-top:1px solid #f0f0f0; margin: 4px 0;"></div>
+        <a href="login.html" class="dropdown-item" style="color:#ff4d4f;"><i class="layui-icon layui-icon-logout"></i> 退出登录</a>
+    </div>
+</nav>
+
+<div class="hero-section">
+    <div class="hero-bg-pattern"></div>
+    <div class="hero-circle"></div>
+    <div class="hero-content">
+        <h1 class="hero-title" id="username">您好！</h1>
+        <p class="hero-sub" id="weather-text">正在获取天气信息...</p>
+
+        <div class="search-wrapper">
+            <input type="text" id="global-search-input" class="global-search-input" placeholder="请输入关键词，如：公积金、医保、身份证补办">
+            <button id="btn-global-search" class="global-search-btn">搜 索</button>
+        </div>
+
+        <div class="hot-search">
+            <span>热门搜索：</span>
+            <span>公积金提取</span>
+            <span>医保备案</span>
+            <span>身份证补办</span>
+            <span>营业执照</span>
+        </div>
+    </div>
+</div>
+
+<div class="main-content">
+
+    <div class="quick-access-bar">
+        <div class="access-item" onclick="location.href='my-affairs.html'">
+            <div class="access-icon" style="color: #1890ff; background: #e6f7ff;"><i class="layui-icon layui-icon-search"></i></div>
+            <div class="access-text">办件进度</div> </div>
+        <div class="access-item" onclick="location.href='appointment.html'">
+            <div class="access-icon" style="color: #722ed1; background: #f9f0ff;"><i class="layui-icon layui-icon-date"></i></div>
+            <div class="access-text">预约取号</div>
+        </div>
+        <div class="access-item" onclick="location.href='qa.html'">
+            <div class="access-icon" style="color: #52c41a; background: #f6ffed;"><i class="layui-icon layui-icon-dialogue"></i></div>
+            <div class="access-text">智能问答</div>
+        </div>
+        <div class="access-item" onclick="location.href='public-affairs.html'">
+            <div class="access-icon" style="color: #fa8c16; background: #fff7e6;"><i class="layui-icon layui-icon-read"></i></div>
+            <div class="access-text">政策文件</div>
+        </div>
+        <div class="access-item" onclick="location.href='guide.html'">
+            <div class="access-icon" style="color: #13c2c2; background: #e6fffb;"><i class="layui-icon layui-icon-survey"></i></div>
+            <div class="access-text">办事指南</div>
+        </div>
+        <div class="access-item" onclick="location.href='feedback.html'">
+            <div class="access-icon" style="color: #eb2f96; background: #fff0f6;"><i class="layui-icon layui-icon-edit"></i></div>
+            <div class="access-text">反馈建议</div>
+        </div>
+    </div>
+
+    <div id="smart-card" class="smart-banner">
+        <div class="smart-content">
+            <h3 id="sc-title">正在加载智能提醒...</h3>
+            <p id="sc-desc">暂无待办事项</p>
+        </div>
+        <a href="#" id="sc-btn" class="smart-btn">查看详情</a>
+    </div>
+
+    <div class="section-header">
+        <div class="section-title">人生一件事 · 套餐办</div>
+        <a href="guide.html" style="color: var(--gov-primary); font-size: 14px; text-decoration: none;">查看更多 <i class="layui-icon layui-icon-right"></i></a>
+    </div>
+
+    <div class="scene-grid">
+        <div class="scene-item" onclick="location.href='scene-bundle.html?scene=birth'">
+            <span class="scene-bg-text">01</span>
+            <div class="scene-item-icon"><i class="layui-icon layui-icon-heart"></i></div>
+            <h4>出生一件事</h4>
+            <p>出生医学证明、户口登记、医保参保、社保卡申领一站式联办。</p>
+        </div>
+        <div class="scene-item" onclick="location.href='scene-bundle.html?scene=school'">
+            <span class="scene-bg-text">02</span>
+            <div class="scene-item-icon" style="color:#52c41a; background:#f6ffed;"><i class="layui-icon layui-icon-read"></i></div>
+            <h4>入学一件事</h4>
+            <p>学区查询、学位申请、网上报名、录取结果查询全流程服务。</p>
+        </div>
+        <div class="scene-item" onclick="location.href='scene-bundle.html?scene=house'">
+            <span class="scene-bg-text">03</span>
+            <div class="scene-item-icon" style="color:#fa8c16; background:#fff7e6;"><i class="layui-icon layui-icon-home"></i></div>
+            <h4>置业一件事</h4>
+            <p>购房资格审核、房产交易网签、公积金贷款、不动产登记。</p>
+        </div>
+        <div class="scene-item" onclick="location.href='scene-bundle.html?scene=retire'">
+            <span class="scene-bg-text">04</span>
+            <div class="scene-item-icon" style="color:#722ed1; background:#f9f0ff;"><i class="layui-icon layui-icon-user"></i></div>
+            <h4>退休一件事</h4>
+            <p>养老金申领核验、公积金提取、老年优待证办理打包服务。</p>
+        </div>
+    </div>
+
+    <div class="section-header">
+        <div class="section-title">数据与特色服务</div>
+    </div>
+    <div class="layui-row layui-col-space20">
+        <div class="layui-col-md6">
+            <div class="scene-item" onclick="location.href='map.html'" style="display:flex; align-items:center; padding:20px;">
+                <div style="flex:1;">
+                    <h4>便民服务地图</h4>
+                    <p>查找附近的政务大厅、自助终端，实时查看排队情况。</p>
+                </div>
+                <i class="layui-icon layui-icon-location" style="font-size:40px; color:#1890ff; opacity:0.8;"></i>
+            </div>
+        </div>
+        <div class="layui-col-md6">
+            <div class="scene-item" onclick="location.href='policy-match.html'" style="display:flex; align-items:center; padding:20px;">
+                <div style="flex:1;">
+                    <h4>惠企惠民政策计算器</h4>
+                    <p>智能匹配符合您的补贴政策，实现“免申即享”。</p>
+                </div>
+                <i class="layui-icon layui-icon-gift" style="font-size:40px; color:#fa8c16; opacity:0.8;"></i>
+            </div>
+        </div>
+        <div class="layui-col-md6">
+            <div class="scene-item" onclick="location.href='analysis.html'" style="display:flex; align-items:center; padding:20px;">
+                <div style="flex:1;">
+                    <h4>政务数据分析</h4>
+                    <p>查看全市办件数据统计、服务效率指数及热门事项。</p>
+                </div>
+                <i class="layui-icon layui-icon-chart-screen" style="font-size:40px; color:#52c41a; opacity:0.8;"></i>
+            </div>
+        </div>
+        <div class="layui-col-md6">
+            <div class="scene-item" onclick="location.href='open-data.html'" style="display:flex; align-items:center; padding:20px;">
+                <div style="flex:1;">
+                    <h4>政府数据开放</h4>
+                    <p>提供经济、民生、交通等领域的公共数据API接口。</p>
+                </div>
+                <i class="layui-icon layui-icon-component" style="font-size:40px; color:#722ed1; opacity:0.8;"></i>
+            </div>
+        </div>
+    </div>
+
+    <div class="footer">
+        © 2025 智能政务助手平台 · 技术支持团队 <br>
+        建议使用 Chrome, Edge 或 Firefox 浏览器访问以获得最佳体验
+    </div>
+</div>
+
+<script src="layui/layui.js"></script>
+<script src="ai.js" onerror="console.log('Mock AI module not loaded')"></script>
+<script>
+    // 全局工具与配置
+    const WEATHER_API = {
+        KEY: "d732cfe8d541b5525ccc8d33bbfbcd89",
+        URL: "https://restapi.amap.com/v3/weather/weatherInfo",
+        CACHE_KEY: "wuhu_weather_cache",
+        CITY_CODE: "340200"
+    };
+
+    const SERVICE_INDEX = [
+        { name: '公积金提取', url: 'apply.html?type=gjj', keywords: ['公积金', '买房', '提取', '钱'] },
+        { name: '社保卡补办', url: 'service-apply.html?title=社保卡补办', keywords: ['社保', '医保', '卡', '丢失'] },
+        { name: '企业营业执照', url: 'service-apply.html?title=营业执照申请', keywords: ['企业', '开店', '公司', '执照'] },
+        { name: '居住证办理', url: 'service-apply.html?title=居住证办理', keywords: ['居住证', '户口', '暂住'] },
+        { name: '预约取号', url: 'appointment.html', keywords: ['预约', '排队', '取号', '线下'] }
+    ];
+
+    // 天气模块 (独立无依赖)
+    async function initWeather() {
+        const now = Date.now();
+        const el = document.getElementById('weather-text');
+        const cache = localStorage.getItem(WEATHER_API.CACHE_KEY);
+
+        // 默认显示，防止闪烁
+        el.textContent = `智能政务助手已为您服务，正在获取天气...`;
+
+        if (cache) {
+            const { data, timestamp } = JSON.parse(cache);
+            if (now - timestamp < 3600000) { // 1小时缓存
+                el.textContent = `今日天气：${data.weather} ${data.temperature}℃ · 智能政务助手已为您服务`;
+                return;
+            }
+        }
+
+        try {
+            const res = await fetch(`${WEATHER_API.URL}?key=${WEATHER_API.KEY}&city=${WEATHER_API.CITY_CODE}&extensions=base&output=json`);
+            const result = await res.json();
+            if (result.status === "1" && result.lives.length) {
+                const w = result.lives[0];
+                localStorage.setItem(WEATHER_API.CACHE_KEY, JSON.stringify({ data: w, timestamp: now }));
+                el.textContent = `今日天气：${w.weather} ${w.temperature}℃ · 智能政务助手已为您服务`;
+            }
+        } catch (e) {
+            console.error('Weather error:', e);
+            el.textContent = `智能政务助手已为您服务 · 天气数据获取失败`;
+        }
+    }
+
+    // 主应用逻辑
+    layui.use(['layer', 'element'], function(){
+        var $ = layui.$, layer = layui.layer;
+        var currentUser = JSON.parse(localStorage.getItem('gov_current_user'));
+
+        if(!currentUser) return window.location.href = 'login.html';
+
+        // 1. 界面初始化
+        $('#username-display').text(currentUser.username);
+        $('#username').text('您好，' + currentUser.username);
+        if(currentUser.role === 'admin') $('.admin-tag').show();
+
+        // 2. 实时时钟
+        setInterval(() => {
+            var now = new Date();
+            var days = ['日','一','二','三','四','五','六'];
+            var str = `${now.getFullYear()}年${now.getMonth()+1}月${now.getDate()}日 星期${days[now.getDay()]} ${String(now.getHours()).padStart(2,'0')}:${String(now.getMinutes()).padStart(2,'0')}`;
+            $('#header-time').text(str);
+        }, 1000);
+
+        // 3. 下拉菜单控制 (点击文档关闭)
+        $(document).on('click', function(e){
+            if(!$(e.target).closest('#user-menu-trigger, #user-dropdown').length) $('#user-dropdown').hide();
+        });
+        $('#user-menu-trigger').on('click', function(e){
+            e.stopPropagation(); $('#user-dropdown').toggle();
+        });
+
+        // 4. 全局搜索
+        function doSearch() {
+            var keyword = $('#global-search-input').val().trim();
+            if(!keyword) return layer.msg('请输入搜索关键词');
+
+            var results = SERVICE_INDEX.filter(item => item.name.includes(keyword) || item.keywords.some(k => k.includes(keyword)));
+
+            if(results.length === 0) layer.msg('未找到相关服务，建议咨询智能助手', {icon: 5});
+            else if(results.length === 1) {
+                layer.msg('正在跳转至：' + results[0].name, {icon: 16, time: 1000}, () => location.href = results[0].url);
+            } else {
+                var listHtml = results.map(r =>
+                    `<div style="padding:15px; border-bottom:1px solid #eee; cursor:pointer; transition:background 0.2s;" onmouseover="this.style.background='#f5f5f5'" onmouseout="this.style.background='#fff'" onclick="location.href='${r.url}'">
+                        <div style="color:var(--gov-primary); font-weight:bold; margin-bottom:4px;">${r.name}</div>
+                        <div style="font-size:12px; color:#999;">点击立即办理</div>
+                    </div>`
+                ).join('');
+                layer.open({
+                    type: 1,
+                    title: '搜索结果',
+                    area: ['320px', 'auto'],
+                    content: `<div style="padding:0;">${listHtml}</div>`,
+                    shadeClose: true,
+                    skin: 'layui-layer-rim'
+                });
+            }
+        }
+        $('#btn-global-search').on('click', doSearch);
+        $('#global-search-input').on('keypress', function(e){ if(e.which === 13) doSearch(); });
+
+        // 5. 智能卡片逻辑 (适配新ID)
+// 5. 智能卡片逻辑 (修复版)
+// 获取当前用户的所有申请
+        var myApps = JSON.parse(localStorage.getItem('gov_applications') || '[]')
+            .filter(a => a.applicant === currentUser.username);
+
+// 按时间倒序排列（假设ID含时间戳，或解析applyTime）
+        myApps.sort((a, b) => (b.id > a.id ? 1 : -1));
+
+        var $t = $('#sc-title'), $d = $('#sc-desc'), $b = $('#sc-btn');
+
+        if(myApps.length > 0) {
+            var latest = myApps[0];
+            // 根据状态显示不同文案
+            if(latest.status === 0) {
+                $t.html('<i class="layui-icon layui-icon-time" style="color: #1890ff; margin-right: 8px;"></i> 进度提醒');
+                $d.text(`您申请的“${latest.service}”正在审核中，请耐心等待。`);
+                $b.text('查看进度').attr('href', 'my-affairs.html');
+            } else if(latest.status === 1) {
+                $t.html('<i class="layui-icon layui-icon-ok-circle" style="color: #52c41a; margin-right: 8px;"></i> 办结通知');
+                $d.text(`好消息！您申请的“${latest.service}”已审核通过。`);
+                $b.text('去评价').attr('href', 'my-affairs.html');
+            } else {
+                $t.html('<i class="layui-icon layui-icon-close-fill" style="color: #ff4d4f; margin-right: 8px;"></i> 驳回提醒');
+                $d.text(`很抱歉，您申请的“${latest.service}”未能通过审核。`);
+                $b.text('重新办理').attr('href', 'my-affairs.html');
+            }
+        } else {
+            // 无记录时的默认状态
+            $t.html('<i class="layui-icon layui-icon-speaker" style="color: #fa8c16; margin-right: 8px;"></i> 欢迎使用');
+            $d.text('您还没有办理记录，试试“一件事”套餐办？');
+            $b.text('去看看').attr('href', 'guide.html');
+        }
+
+        // 6. 消息通知逻辑
+        var allNotes = JSON.parse(localStorage.getItem('gov_notifications') || '[]');
+        var myNotes = allNotes.filter(n => n.targetUser === currentUser.username);
+        var unreadCount = myNotes.filter(n => !n.read).length;
+        if(unreadCount > 0) $('#notice-dot').show();
+
+        $('#btn-notice').on('click', function(e){
+            e.stopPropagation();
+            var listHtml = myNotes.length ? myNotes.map(n => `
+                <li style="padding: 12px 16px; border-bottom: 1px solid #f0f0f0; background: ${n.read?'#fff':'#f0f7ff'}; font-size: 13px;">
+                    <div style="font-weight: 600; color: #333; margin-bottom:4px;">${n.title}</div>
+                    <div style="color: #666; line-height:1.4;">${n.content}</div>
+                    <div style="color: #999; font-size: 12px; margin-top: 6px;">${n.time}</div>
+                </li>`).join('') : '<li style="padding:24px; text-align:center; color:#999;">暂无消息</li>';
+
+            // 标记已读
+            if(unreadCount > 0) {
+                localStorage.setItem('gov_notifications', JSON.stringify(allNotes.map(n => {
+                    if(n.targetUser === currentUser.username) n.read = true;
+                    return n;
+                })));
+                $('#notice-dot').hide();
+            }
+
+            layer.tips(`<ul style="max-height: 320px; overflow-y: auto;">${listHtml}</ul>`, this, {
+                tips: [3, '#fff'], time: 5000, area: ['300px', 'auto'], shadeClose: true, skin: 'layui-layer-rim'
+            });
+        });
+
+        // 启动天气
+        initWeather();
+    });
+</script>
+</body>
+</html>

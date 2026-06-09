@@ -1,0 +1,392 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>便民服务地图 - 智能政务助手</title>
+    <link rel="stylesheet" href="layui/css/layui.css">
+
+    <script type="text/javascript">
+        window._AMapSecurityConfig = {
+            securityJsCode: '3ddd6f7b737366b6f9cd5dfc5ef2d7b4',
+        }
+    </script>
+    <script type="text/javascript" src="https://webapi.amap.com/maps?v=2.0&key=1404798dc128fca100ad174f9449e494"></script>
+
+    <style>
+        :root {
+            --gov-primary: #1890ff;
+            --gov-bg: #f0f2f5;
+            --text-main: #333;
+            --text-secondary: #666;
+        }
+
+        body, html { height: 100%; margin: 0; padding: 0; font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, "Helvetica Neue", Arial, sans-serif; overflow: hidden; }
+
+        .map-container { display: flex; height: 100vh; width: 100%; }
+
+        /* 左侧边栏 */
+        .map-sidebar {
+            width: 360px; background: #fff; border-right: 1px solid #ddd;
+            display: flex; flex-direction: column; z-index: 20;
+            box-shadow: 4px 0 10px rgba(0,0,0,0.05); position: relative;
+        }
+
+        /* 搜索头 */
+        .search-header { padding: 20px; background: linear-gradient(135deg, #001529 0%, #003a8c 100%); }
+        .search-wrap { display: flex; background: #fff; border-radius: 4px; overflow: hidden; padding: 4px; }
+        .search-input { flex: 1; border: none; padding: 0 10px; height: 32px; outline: none; font-size: 14px; }
+        .search-btn { border: none; background: #fff; color: var(--gov-primary); cursor: pointer; padding: 0 10px; font-size: 16px; transition: color 0.3s; }
+        .search-btn:hover { color: #096dd9; }
+
+        /* 列表区域 */
+        .list-content { flex: 1; overflow-y: auto; background: #fff; }
+
+        .poi-item {
+            padding: 18px 20px; border-bottom: 1px solid #f0f0f0; cursor: pointer; transition: all 0.2s;
+            position: relative; border-left: 4px solid transparent;
+        }
+        .poi-item:hover { background: #f9f9f9; }
+        .poi-item.active { background: #e6f7ff; border-left-color: var(--gov-primary); }
+
+        .poi-name { font-weight: 600; font-size: 16px; color: var(--text-main); margin-bottom: 6px; }
+        .poi-addr { font-size: 13px; color: var(--text-secondary); margin-bottom: 8px; display: flex; align-items: center; }
+        .poi-addr i { margin-right: 4px; font-size: 14px; }
+
+        .poi-tags { display: flex; align-items: center; justify-content: space-between; }
+        .tag-type { padding: 2px 6px; background: #f0f5ff; color: var(--gov-primary); border-radius: 2px; font-size: 12px; }
+        .status-dot { width: 8px; height: 8px; border-radius: 50%; display: inline-block; margin-right: 4px; }
+
+        /* 右侧地图容器 */
+        #map-container { flex: 1; height: 100%; position: relative; background: #f0f2f5; }
+
+        /* 悬浮返回按钮 */
+        .float-back {
+            position: absolute; top: 20px; left: 20px; z-index: 100;
+            background: #fff; padding: 10px 20px; border-radius: 4px;
+            box-shadow: 0 2px 6px rgba(0,0,0,0.15); text-decoration: none;
+            color: #333; font-size: 14px; display: flex; align-items: center;
+            transition: all 0.3s;
+        }
+        .float-back:hover { color: var(--gov-primary); transform: translateY(-2px); }
+        .float-back i { margin-right: 6px; }
+
+        /* 2D/3D 切换按钮 */
+        .view-mode-btn {
+            position: absolute; top: 20px; right: 20px; z-index: 100;
+            background: #fff; width: 44px; height: 44px; border-radius: 4px;
+            box-shadow: 0 2px 6px rgba(0,0,0,0.15); cursor: pointer;
+            display: flex; align-items: center; justify-content: center;
+            font-weight: bold; color: var(--gov-primary); font-size: 14px;
+            transition: all 0.3s; user-select: none;
+        }
+        .view-mode-btn:hover { background: var(--gov-primary); color: #fff; transform: translateY(-2px); }
+        .view-mode-btn.is-3d { background: var(--gov-primary); color: #fff; box-shadow: 0 4px 12px rgba(24, 144, 255, 0.4); }
+
+        /* 自定义信息窗体样式 */
+        .amap-info-content { border-radius: 8px; box-shadow: 0 2px 10px rgba(0,0,0,0.1); padding: 0; border: none; }
+        .amap-info-close { right: 10px !important; top: 10px !important; color: #999; font-size: 16px; text-decoration: none; }
+
+        .info-window { width: 300px; padding: 20px; background: #fff; border-radius: 8px; }
+        .info-title { font-size: 16px; font-weight: bold; color: #333; margin-bottom: 8px; padding-right: 20px; }
+        .info-addr { font-size: 13px; color: #666; margin-bottom: 15px; }
+
+        .info-stat-row { display: flex; justify-content: space-between; background: #f7f9fa; padding: 10px; border-radius: 4px; margin-bottom: 15px; }
+        .stat-item { text-align: center; flex: 1; }
+        .stat-num { font-weight: bold; color: var(--gov-primary); font-size: 16px; }
+        .stat-label { font-size: 12px; color: #999; margin-top: 2px; }
+
+        .info-btns { display: flex; gap: 10px; }
+        .info-btn { flex: 1; height: 34px; line-height: 34px; border: 1px solid #ddd; border-radius: 4px; text-align: center; cursor: pointer; font-size: 13px; transition: 0.2s; background: #fff; color: #333; text-decoration: none; }
+        .info-btn.primary { background: var(--gov-primary); color: #fff; border-color: var(--gov-primary); }
+        .info-btn:hover { opacity: 0.9; }
+        .info-btn.default:hover { border-color: var(--gov-primary); color: var(--gov-primary); }
+
+        /* 移动端适配 */
+        @media screen and (max-width: 768px) {
+            .map-container { flex-direction: column; }
+            .map-sidebar { width: 100%; height: 40%; order: 2; box-shadow: 0 -4px 10px rgba(0,0,0,0.05); }
+            #map-container { height: 60%; order: 1; }
+            .search-header { padding: 10px 15px; }
+            .poi-item { padding: 12px 15px; }
+        }
+    </style>
+</head>
+<body>
+
+<div class="map-container">
+    <div class="map-sidebar">
+        <div class="search-header">
+            <div class="search-wrap">
+                <input type="text" id="keyword-input" class="search-input" placeholder="搜索办事大厅、自助终端...">
+                <button class="search-btn" onclick="searchPOI()"><i class="layui-icon layui-icon-search"></i></button>
+            </div>
+        </div>
+        <div class="list-content" id="poi-list">
+            </div>
+    </div>
+
+    <div id="map-container">
+        <a href="index.html" class="float-back"><i class="layui-icon layui-icon-return"></i> 返回首页</a>
+        <div class="view-mode-btn" id="view-btn" onclick="toggleView()">3D</div>
+    </div>
+</div>
+
+<script src="layui/layui.js"></script>
+<script>
+    // 模拟 POI 数据
+    const poiData = [
+        {
+            id: 1,
+            name: '市政务服务中心(总厅)',
+            address: '北京市朝阳区建国路88号',
+            location: [116.473168, 39.907936],
+            type: '综合大厅',
+            wait: 45,
+            windows: 12,
+            status: 'busy',
+            tel: '010-12345678'
+        },
+        {
+            id: 2,
+            name: '东城区社保分中心',
+            address: '东城区和平里北街1号',
+            location: [116.427306, 39.957635],
+            type: '社保专窗',
+            wait: 0,
+            windows: 6,
+            status: 'free',
+            tel: '010-87654321'
+        },
+        {
+            id: 3,
+            name: '海淀区24小时自助服务站',
+            address: '海淀区中关村大街15号',
+            location: [116.315579, 39.986684],
+            type: '自助终端',
+            wait: 5,
+            windows: 2,
+            status: 'normal',
+            tel: '无'
+        },
+        {
+            id: 4,
+            name: '西城区不动产登记中心',
+            address: '西城区南菜园街51号',
+            location: [116.359217, 39.873215],
+            type: '专项大厅',
+            wait: 20,
+            windows: 8,
+            status: 'normal',
+            tel: '010-66668888'
+        },
+        {
+            id: 5,
+            name: '朝阳区税务局第一税务所',
+            address: '朝阳区麦子店街37号',
+            location: [116.472719, 39.941624],
+            type: '税务大厅',
+            wait: 60,
+            windows: 15,
+            status: 'busy',
+            tel: '010-99990000'
+        }
+    ];
+
+    let map = null;
+    let markers = [];
+    let infoWindow = null;
+    let is3DMode = false; // 当前是否为3D模式
+
+    // 初始化地图
+    window.onload = function() {
+        initMap();
+        renderList(poiData);
+    };
+
+    function initMap() {
+        // 创建地图实例 (开启 viewMode: '3D')
+        map = new AMap.Map('map-container', {
+            zoom: 11,
+            center: [116.397428, 39.90923],
+            viewMode: '3D', // 关键：开启3D视图模式
+            pitch: 0,       // 初始俯仰角0（平面视图）
+            rotation: 0,    // 初始旋转角
+            showBuildingBlock: true, // 显示3D楼块
+            resizeEnable: true
+        });
+
+        // 加载插件
+        AMap.plugin(['AMap.ToolBar', 'AMap.Scale', 'AMap.ControlBar'], function(){
+            map.addControl(new AMap.ToolBar({position: 'RB'})); // 缩放工具在右下
+            map.addControl(new AMap.Scale());
+        });
+
+        // 创建信息窗体实例
+        infoWindow = new AMap.InfoWindow({
+            offset: new AMap.Pixel(0, -30),
+            isCustom: true // 使用自定义窗体
+        });
+
+        // 批量创建标记点
+        addMarkers(poiData);
+        map.setFitView();
+    }
+
+    // 2D/3D 切换逻辑
+    window.toggleView = function() {
+        const btn = document.getElementById('view-btn');
+
+        if (!is3DMode) {
+            // 切换到 3D
+            map.setPitch(50, true); // 俯仰角 50度 (带动画)
+            map.setRotation(-15, true); // 稍微旋转一下，立体感更强
+            btn.innerText = '2D';
+            btn.classList.add('is-3d');
+            layui.layer.msg('已切换至 3D 视图');
+        } else {
+            // 切换回 2D
+            map.setPitch(0, true);
+            map.setRotation(0, true);
+            btn.innerText = '3D';
+            btn.classList.remove('is-3d');
+            layui.layer.msg('已切换至平面视图');
+        }
+        is3DMode = !is3DMode;
+    }
+
+    // 添加标记点
+    function addMarkers(data) {
+        map.remove(markers);
+        markers = [];
+
+        data.forEach((item, index) => {
+            let color = getHexColor(item.status);
+            let content = `<div style="background:${color}; width:24px; height:24px; border-radius:50%; border:2px solid #fff; box-shadow:0 2px 5px rgba(0,0,0,0.3); text-align:center; line-height:20px; color:#fff; font-size:12px;">${index+1}</div>`;
+
+            let marker = new AMap.Marker({
+                position: item.location,
+                content: content,
+                offset: new AMap.Pixel(-12, -12),
+                title: item.name,
+                extData: { id: item.id }
+            });
+
+            marker.on('click', () => highlightPOI(item.id));
+            marker.setMap(map);
+            markers.push(marker);
+        });
+    }
+
+    // 渲染列表
+    function renderList(data) {
+        const container = document.getElementById('poi-list');
+        if (data.length === 0) {
+            container.innerHTML = '<div style="padding:30px; text-align:center; color:#999;">未找到相关地点</div>';
+            return;
+        }
+
+        let html = '';
+        data.forEach((item, index) => {
+            let statusText = item.status === 'busy' ? '拥挤' : (item.status === 'free' ? '空闲' : '正常');
+            let color = getHexColor(item.status);
+
+            html += `
+            <div class="poi-item" id="poi-${item.id}" onclick="clickListItem(${item.id})">
+                <div class="poi-name">${index + 1}. ${item.name}</div>
+                <div class="poi-addr"><i class="layui-icon layui-icon-location"></i> ${item.address}</div>
+                <div class="poi-tags">
+                    <span class="tag-type">${item.type}</span>
+                    <span style="font-size:12px; color:${color};">
+                        <span class="status-dot" style="background:${color}"></span>${statusText} (排队${item.wait}分)
+                    </span>
+                </div>
+            </div>`;
+        });
+        container.innerHTML = html;
+    }
+
+    window.clickListItem = function(id) { highlightPOI(id); };
+
+    function highlightPOI(id) {
+        const item = poiData.find(p => p.id === id);
+        if (!item) return;
+
+        document.querySelectorAll('.poi-item').forEach(el => el.classList.remove('active'));
+        const listItem = document.getElementById(`poi-${id}`);
+        if(listItem) {
+            listItem.classList.add('active');
+            listItem.scrollIntoView({ behavior: 'smooth', block: 'center' });
+        }
+
+        map.panTo(item.location);
+        openInfoWindow(item);
+    }
+
+    function openInfoWindow(item) {
+        let statusText = item.status === 'busy' ? '拥挤' : (item.status === 'free' ? '空闲' : '正常');
+        let color = getHexColor(item.status);
+        let navUrl = `https://uri.amap.com/marker?position=${item.location[0]},${item.location[1]}&name=${encodeURIComponent(item.name)}`;
+
+        const content = `
+            <div class="info-window">
+                <div class="info-title">
+                    ${item.name}
+                    <a href="javascript:;" onclick="map.clearInfoWindow()" class="amap-info-close">×</a>
+                </div>
+                <div class="info-addr"><i class="layui-icon layui-icon-cellphone"></i> ${item.tel}</div>
+                <div class="info-addr">${item.address}</div>
+                <div class="info-stat-row">
+                    <div class="stat-item">
+                        <div class="stat-num" style="color:${color}">${statusText}</div>
+                        <div class="stat-label">当前状态</div>
+                    </div>
+                    <div class="stat-item">
+                        <div class="stat-num">${item.wait}<span style="font-size:12px;font-weight:normal">分</span></div>
+                        <div class="stat-label">预计等待</div>
+                    </div>
+                    <div class="stat-item">
+                        <div class="stat-num">${item.windows}</div>
+                        <div class="stat-label">开放窗口</div>
+                    </div>
+                </div>
+                <div class="info-btns">
+                    <a href="appointment.html" class="info-btn primary">立即预约</a>
+                    <a href="${navUrl}" target="_blank" class="info-btn default">导航前往</a>
+                </div>
+            </div>
+        `;
+
+        infoWindow.setContent(content);
+        infoWindow.open(map, item.location);
+    }
+
+    window.searchPOI = function() {
+        const keyword = document.getElementById('keyword-input').value.trim();
+        if (!keyword) {
+            renderList(poiData);
+            addMarkers(poiData);
+            map.setFitView();
+            return;
+        }
+        const filtered = poiData.filter(p => p.name.includes(keyword) || p.address.includes(keyword) || p.type.includes(keyword));
+        renderList(filtered);
+        addMarkers(filtered);
+        if (filtered.length > 0) map.setFitView();
+        else layui.layer.msg('未找到匹配的地点');
+    };
+
+    function getHexColor(status) {
+        switch(status) {
+            case 'busy': return '#ff4d4f';
+            case 'free': return '#52c41a';
+            default: return '#fa8c16';
+        }
+    }
+
+    document.getElementById('keyword-input').addEventListener('keypress', function(e){
+        if(e.key === 'Enter') searchPOI();
+    });
+</script>
+</body>
+</html>

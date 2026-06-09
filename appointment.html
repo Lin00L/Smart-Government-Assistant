@@ -1,0 +1,337 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>在线预约取号</title>
+    <link rel="stylesheet" href="layui/css/layui.css">
+    <style>
+        :root {
+            /* 统一配色变量 */
+            --gov-primary: #1890ff;
+            --gov-primary-dark: #096dd9;
+            --gov-bg: #f0f2f5;
+            --gov-white: #ffffff;
+            --text-main: #000000d9;
+            --text-secondary: #00000073;
+            --border-color: #d9d9d9;
+            --card-shadow: 0 1px 2px -2px rgba(0,0,0,0.16), 0 3px 6px 0 rgba(0,0,0,0.12), 0 5px 12px 4px rgba(0,0,0,0.09);
+        }
+
+        body {
+            background-color: var(--gov-bg);
+            /* 背景纹理 */
+            background-image: radial-gradient(#e6f7ff 1px, transparent 1px);
+            background-size: 20px 20px;
+            padding: 24px;
+            font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, "Helvetica Neue", Arial, sans-serif;
+            margin: 0;
+            min-height: 100vh;
+            display: flex; justify-content: center; align-items: flex-start;
+        }
+
+        .container {
+            width: 100%; max-width: 600px;
+            background: #fff; border-radius: 8px;
+            overflow: hidden;
+            box-shadow: var(--card-shadow);
+            border: 1px solid #f0f0f0;
+        }
+
+        /* 头部样式优化 */
+        .header {
+            background: linear-gradient(135deg, #1890ff 0%, #0050b3 100%);
+            color: #fff;
+            padding: 24px 20px;
+            text-align: center;
+            position: relative;
+        }
+
+        .back-btn {
+            position: absolute; left: 20px; top: 24px;
+            color: rgba(255,255,255,0.85);
+            text-decoration: none;
+            font-size: 14px;
+            display: flex; align-items: center;
+            transition: opacity 0.3s;
+        }
+        .back-btn:hover { opacity: 1; color: #fff; }
+        .back-btn i { margin-right: 4px; font-size: 16px; }
+
+        .header h2 { font-size: 20px; font-weight: 600; margin: 0; letter-spacing: 1px; }
+        .header p { opacity: 0.85; font-size: 13px; margin-top: 8px; font-weight: 300; }
+
+        /* 内容区样式 */
+        .content { padding: 32px; }
+
+        .section-title {
+            font-weight: 600;
+            margin-bottom: 16px;
+            font-size: 16px;
+            color: var(--text-main);
+            display: flex; align-items: center;
+        }
+        .section-title::before {
+            content: ''; display: inline-block; width: 4px; height: 16px;
+            background: var(--gov-primary); border-radius: 2px; margin-right: 10px;
+        }
+
+        /* 表单控件优化 */
+        .layui-input, .layui-select, .layui-textarea {
+            border-radius: 4px; border-color: var(--border-color); height: 40px;
+        }
+        .layui-input:hover, .layui-textarea:hover { border-color: var(--gov-primary); }
+        .layui-input:focus, .layui-textarea:focus { border-color: var(--gov-primary); box-shadow: 0 0 0 2px rgba(24, 144, 255, 0.2); }
+
+        /* 时间段选择 grid */
+        .time-grid {
+            display: grid; grid-template-columns: repeat(3, 1fr); gap: 16px; margin-top: 16px;
+        }
+
+        .time-slot {
+            border: 1px solid var(--border-color);
+            border-radius: 6px;
+            padding: 16px 10px;
+            text-align: center;
+            cursor: pointer;
+            transition: all 0.3s;
+            background: #fff;
+            position: relative;
+            overflow: hidden;
+        }
+
+        .time-slot:hover {
+            border-color: var(--gov-primary);
+            color: var(--gov-primary);
+            box-shadow: 0 2px 8px rgba(0,0,0,0.05);
+        }
+
+        .time-slot.active {
+            background: #e6f7ff;
+            color: var(--gov-primary);
+            border-color: var(--gov-primary);
+            font-weight: 500;
+        }
+        /* 选中时的右下角角标 */
+        .time-slot.active::after {
+            content: '✓';
+            position: absolute; right: 0; bottom: 0;
+            background: var(--gov-primary); color: #fff;
+            font-size: 10px; padding: 2px 6px;
+            border-top-left-radius: 6px;
+        }
+
+        .time-slot.disabled {
+            background: #f5f5f5;
+            color: #00000040;
+            cursor: not-allowed;
+            border-color: #d9d9d9;
+            box-shadow: none;
+        }
+
+        .slot-time { font-size: 15px; margin-bottom: 4px; }
+        .slot-remain { font-size: 12px; opacity: 0.7; }
+
+        /* 响应式调整 */
+        @media screen and (max-width: 600px) {
+            body { padding: 0; background: #fff; }
+            .container { box-shadow: none; border: none; border-radius: 0; max-width: 100%; height: 100vh; overflow-y: auto; }
+            .time-grid { grid-template-columns: repeat(2, 1fr); }
+        }
+
+        /* 电子票据样式 (用于Layer弹窗) */
+        .ticket-wrapper { padding: 20px; text-align: center; background: #fff; }
+        .ticket-icon { font-size: 48px; color: #52c41a; margin-bottom: 10px; }
+        .ticket-title { font-size: 18px; font-weight: 600; color: #333; margin-bottom: 20px; }
+        .ticket-card {
+            background: #f9f9f9;
+            border: 1px dashed #d9d9d9;
+            border-radius: 8px;
+            padding: 15px;
+            margin-bottom: 15px;
+            text-align: left;
+        }
+        .ticket-row { display: flex; justify-content: space-between; margin-bottom: 8px; font-size: 14px; }
+        .ticket-label { color: #888; }
+        .ticket-value { font-weight: 500; color: #333; }
+        .ticket-qr { margin: 15px 0; border: 4px solid #fff; box-shadow: 0 2px 8px rgba(0,0,0,0.1); border-radius: 4px; }
+        .ticket-tip { font-size: 12px; color: #ff4d4f; margin-top: 5px; background: #fff1f0; padding: 5px; border-radius: 4px; display: inline-block; }
+    </style>
+</head>
+<body>
+
+<div class="container">
+    <div class="header">
+        <a href="index.html" class="back-btn"><i class="layui-icon layui-icon-left"></i> 返回</a>
+        <h2>在线预约取号</h2>
+        <p>市政务服务中心（综合大厅）· 智能排队系统</p>
+    </div>
+
+    <div class="content">
+        <div class="section-title">第一步：选择办理业务</div>
+        <form class="layui-form">
+            <div class="layui-form-item" style="margin-bottom: 0;">
+                <select lay-filter="bizType">
+                    <option value="">请选择业务类型</option>
+                    <option value="1">不动产登记</option>
+                    <option value="2">社保医保业务</option>
+                    <option value="3">公积金业务</option>
+                    <option value="4">企业开办</option>
+                </select>
+            </div>
+        </form>
+
+        <div class="section-title" style="margin-top: 32px;">第二步：选择预约日期</div>
+        <input type="text" class="layui-input" id="date-picker" placeholder="请点击选择日期" readonly>
+
+        <div class="section-title" style="margin-top: 32px;">第三步：选择时间段</div>
+        <div class="time-grid" id="time-slots">
+            <div class="time-slot disabled">
+                <div class="slot-time">09:00 - 10:00</div>
+                <div class="slot-remain">剩余 0</div>
+            </div>
+            <div class="time-slot" onclick="selectSlot(this)">
+                <div class="slot-time">10:00 - 11:00</div>
+                <div class="slot-remain">剩余 5</div>
+            </div>
+            <div class="time-slot" onclick="selectSlot(this)">
+                <div class="slot-time">13:30 - 14:30</div>
+                <div class="slot-remain">剩余 12</div>
+            </div>
+            <div class="time-slot" onclick="selectSlot(this)">
+                <div class="slot-time">14:30 - 15:30</div>
+                <div class="slot-remain">剩余 8</div>
+            </div>
+            <div class="time-slot" onclick="selectSlot(this)">
+                <div class="slot-time">15:30 - 16:30</div>
+                <div class="slot-remain">剩余 20</div>
+            </div>
+        </div>
+
+        <button class="layui-btn layui-btn-fluid" style="margin-top: 48px; background: var(--gov-primary); height: 48px; border-radius: 4px; font-size: 16px;" onclick="submitBooking()">确认预约</button>
+    </div>
+</div>
+
+<script src="layui/layui.js"></script>
+<script src="ai.js" onerror="console.log('AI module loaded')"></script>
+<script>
+    layui.use(['laydate', 'layer', 'form'], function(){
+        var laydate = layui.laydate;
+        var layer = layui.layer;
+
+        // 渲染日历
+        laydate.render({
+            elem: '#date-picker',
+            min: 0, // 只能选今天及以后
+            max: 7, // 最多往后约7天
+            value: new Date(),
+            btns: ['now', 'confirm'],
+            theme: '#1890ff' // 适配主题色
+        });
+
+        window.selectSlot = function(el) {
+            if(el.classList.contains('disabled')) return;
+            document.querySelectorAll('.time-slot').forEach(e => e.classList.remove('active'));
+            el.classList.add('active');
+        }
+
+        window.submitBooking = function() {
+            var hasSlot = document.querySelector('.time-slot.active');
+            var bizTypeSelect = document.querySelector('select[lay-filter="bizType"]'); // 获取业务类型
+            var datePicker = document.getElementById('date-picker');
+
+            if(!bizTypeSelect.value) return layer.msg('请选择业务类型', {icon: 0});
+            if(!datePicker.value) return layer.msg('请选择日期', {icon: 0});
+            if(!hasSlot) return layer.msg('请选择一个时间段', {icon: 0});
+
+            var load = layer.load(2, {shade: 0.3});
+
+            setTimeout(function(){
+                layer.close(load);
+
+                // --- 数据处理 ---
+                // 防止 user 为 null 导致报错 (测试用)
+                var userStr = localStorage.getItem('gov_current_user');
+                var user = userStr ? JSON.parse(userStr) : { username: '测试用户' };
+
+                var apps = JSON.parse(localStorage.getItem('gov_applications') || '[]');
+
+                // 获取选中的文本
+                var bizText = bizTypeSelect.options[bizTypeSelect.selectedIndex].text;
+                var timeText = hasSlot.querySelector('.slot-time').innerText;
+                var appointId = 'YY' + new Date().getTime(); // 生成唯一预约号
+                var fullDate = datePicker.value;
+
+                // 存入本地存储
+                apps.unshift({
+                    id: appointId,
+                    service: '【预约】' + bizText,
+                    applicant: user.username,
+                    applyTime: fullDate + ' ' + timeText,
+                    status: 1, // 预约直接算“通过/有效”
+                    remarks: '线上预约取号'
+                });
+                localStorage.setItem('gov_applications', JSON.stringify(apps));
+
+                // --- 核心：生成电子票据弹窗 ---
+                // 使用 api.qrserver.com 生成二维码，内容为 JSON 字符串或预约号
+                var qrData = encodeURIComponent(`预约号:${appointId}|业务:${bizText}|时间:${fullDate} ${timeText}`);
+                var qrUrl = `https://api.qrserver.com/v1/create-qr-code/?size=150x150&data=${qrData}`;
+
+                var ticketHtml = `
+                    <div class="ticket-wrapper">
+                        <i class="layui-icon layui-icon-success ticket-icon"></i>
+                        <div class="ticket-title">预约成功</div>
+
+                        <div class="ticket-card">
+                            <div class="ticket-row">
+                                <span class="ticket-label">预约编号</span>
+                                <span class="ticket-value" style="color:#1890ff; font-weight:bold;">${appointId}</span>
+                            </div>
+                            <div class="ticket-row">
+                                <span class="ticket-label">办理业务</span>
+                                <span class="ticket-value">${bizText}</span>
+                            </div>
+                            <div class="ticket-row">
+                                <span class="ticket-label">预约时间</span>
+                                <span class="ticket-value">${fullDate}</span>
+                            </div>
+                            <div class="ticket-row">
+                                <span class="ticket-label">具体时段</span>
+                                <span class="ticket-value">${timeText}</span>
+                            </div>
+                            <div class="ticket-row">
+                                <span class="ticket-label">预约人</span>
+                                <span class="ticket-value">${user.username}</span>
+                            </div>
+                        </div>
+
+                        <div style="text-align: center;">
+                            <img src="${qrUrl}" alt="预约二维码" class="ticket-qr">
+                            <br>
+                            <span class="ticket-tip">请截图保存二维码，现场凭码取号</span>
+                        </div>
+
+                        <div style="margin-top: 24px;">
+                            <a href="index.html" class="layui-btn layui-btn-primary layui-border-blue layui-btn-fluid">返回首页</a>
+                        </div>
+                    </div>
+                `;
+
+                // 弹出层
+                layer.open({
+                    type: 1,
+                    title: false, // 不显示标题栏
+                    closeBtn: 0, // 不显示关闭按钮
+                    area: ['320px', 'auto'], // 模拟手机屏幕宽度
+                    shadeClose: false, // 强制点击按钮关闭
+                    content: ticketHtml,
+                    anim: 5 // 渐显动画
+                });
+
+            }, 800); // 模拟网络延迟
+        }
+    });
+</script>
+</body>
+</html>

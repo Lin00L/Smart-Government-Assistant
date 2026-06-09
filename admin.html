@@ -1,0 +1,632 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>系统管理后台 - 智能政务助手</title>
+    <link rel="stylesheet" href="layui/css/layui.css">
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+    <script src="echarts.min.js"></script>
+
+    <style>
+        :root {
+            --gov-primary: #1890ff;
+            --gov-primary-dark: #001529;
+            --gov-bg: #f0f2f5;
+            --header-height: 60px;
+            --sidebar-width: 220px;
+            --card-shadow: 0 1px 2px 0 rgba(0, 0, 0, 0.05);
+        }
+
+        body {
+            background-color: var(--gov-bg);
+            margin: 0; padding: 0;
+            font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, "Helvetica Neue", Arial, sans-serif;
+            height: 100vh; display: flex; flex-direction: column;
+            color: #333;
+        }
+
+        /* --- Header --- */
+        .admin-header {
+            height: var(--header-height);
+            background: #fff;
+            box-shadow: 0 1px 4px rgba(0, 21, 41, 0.08);
+            display: flex; align-items: center; justify-content: space-between;
+            padding: 0 20px; z-index: 10;
+            position: relative;
+        }
+        .logo { font-size: 20px; font-weight: bold; color: var(--gov-primary); display: flex; align-items: center; gap: 10px; width: var(--sidebar-width); }
+        .header-right { display: flex; align-items: center; gap: 20px; font-size: 14px; color: #666; }
+        .header-right a { color: #666; text-decoration: none; transition: 0.3s; }
+        .header-right a:hover { color: var(--gov-primary); }
+
+        /* --- Sidebar --- */
+        .app-body { display: flex; flex: 1; overflow: hidden; }
+
+        .admin-sidebar {
+            width: var(--sidebar-width);
+            background: var(--gov-primary-dark);
+            box-shadow: 2px 0 6px rgba(0, 21, 41, 0.35);
+            display: flex; flex-direction: column;
+            flex-shrink: 0;
+            transition: all 0.3s;
+        }
+
+        .menu-list { list-style: none; padding: 10px 0; margin: 0; }
+        .menu-item {
+            padding: 14px 24px; cursor: pointer; color: rgba(255, 255, 255, 0.65);
+            display: flex; align-items: center; transition: all 0.3s;
+            font-size: 14px; border-left: 3px solid transparent;
+        }
+        .menu-item i { margin-right: 10px; width: 20px; text-align: center; font-size: 16px; }
+        .menu-item:hover { color: #fff; background: rgba(255,255,255,0.05); }
+        .menu-item.active { background: var(--gov-primary); color: #fff; border-left-color: #fff; }
+
+        /* --- Main Content --- */
+        .admin-content {
+            flex: 1; padding: 20px; overflow-y: auto; overflow-x: hidden;
+            position: relative;
+        }
+
+        /* 页面容器 (关键：默认隐藏，通过 active 显示) */
+        .page-container { display: none; animation: fadeIn 0.3s; }
+        .page-container.active { display: block; }
+        @keyframes fadeIn { from { opacity: 0; transform: translateY(5px); } to { opacity: 1; transform: translateY(0); } }
+
+        /* 卡片样式 */
+        .card { background: #fff; border-radius: 4px; padding: 20px; margin-bottom: 20px; box-shadow: var(--card-shadow); }
+        .card-header { font-size: 16px; font-weight: 600; border-bottom: 1px solid #f0f0f0; padding-bottom: 15px; margin-bottom: 15px; display: flex; justify-content: space-between; align-items: center; }
+
+        /* 统计卡片 (Dashboard) */
+        .stat-card {
+            background: #fff; border-radius: 4px; padding: 24px;
+            display: flex; justify-content: space-between; align-items: flex-start;
+            box-shadow: var(--card-shadow); transition: 0.3s; border: 1px solid #f0f0f0;
+        }
+        .stat-card:hover { transform: translateY(-2px); box-shadow: 0 4px 12px rgba(0,0,0,0.1); }
+        .stat-title { color: #8c8c8c; font-size: 14px; margin-bottom: 10px; }
+        .stat-value { font-size: 30px; font-weight: 700; color: #333; line-height: 1; margin-bottom: 10px; }
+        .stat-icon { font-size: 48px; opacity: 0.15; color: var(--gov-primary); }
+
+        /* 表格工具栏 */
+        .table-toolbar { display: flex; gap: 10px; margin-bottom: 15px; flex-wrap: wrap; }
+
+        /* Layui 覆盖微调 */
+        .layui-btn-primary:hover { border-color: var(--gov-primary); color: var(--gov-primary); }
+        .text-primary { color: var(--gov-primary); }
+        .text-success { color: #52c41a; }
+        .text-warning { color: #fa8c16; }
+        .text-danger { color: #ff4d4f; }
+
+        /* 响应式 */
+        @media screen and (max-width: 768px) {
+            .admin-sidebar { position: fixed; left: -220px; height: 100%; z-index: 999; top: 60px; }
+            .admin-sidebar.show { left: 0; }
+            .logo { width: auto; }
+            .mobile-toggle { display: block !important; margin-right: 15px; font-size: 20px; cursor: pointer; }
+        }
+        .mobile-toggle { display: none; }
+    </style>
+</head>
+<body>
+
+<div class="admin-header">
+    <div class="logo">
+        <i class="layui-icon layui-icon-shrink-right mobile-toggle" id="menu-toggle"></i>
+        <i class="layui-icon layui-icon-template-1"></i> 智能政务后台
+    </div>
+    <div class="header-right">
+        <div id="sys-time">12:00:00</div>
+        <span>管理员</span>
+        <a href="index.html" target="_blank" title="前台首页"><i class="layui-icon layui-icon-website"></i></a>
+        <a href="login.html" title="退出登录"><i class="layui-icon layui-icon-logout" style="color:#ff4d4f;"></i></a>
+    </div>
+</div>
+
+<div class="app-body">
+    <div class="admin-sidebar" id="sidebar">
+        <ul class="menu-list">
+            <li class="menu-item active" onclick="switchPage('dashboard', this)">
+                <i class="layui-icon layui-icon-console"></i> 决策驾驶舱
+            </li>
+            <li class="menu-item" onclick="switchPage('user', this)">
+                <i class="layui-icon layui-icon-user"></i> 用户管理
+            </li>
+            <li class="menu-item" onclick="switchPage('approval', this)">
+                <i class="layui-icon layui-icon-vercode"></i> 业务审批
+            </li>
+            <li class="menu-item" onclick="switchPage('feedback', this)">
+                <i class="layui-icon layui-icon-survey"></i> 反馈处理
+            </li>
+            <li class="menu-item" onclick="switchPage('faq', this)">
+                <i class="layui-icon layui-icon-list"></i> 知识库管理
+            </li>
+            <li class="menu-item" onclick="switchPage('logs', this)">
+                <i class="layui-icon layui-icon-log"></i> 系统日志
+            </li>
+            <li class="menu-item" onclick="switchPage('backup', this)">
+                <i class="layui-icon layui-icon-engine"></i> 数据备份
+            </li>
+        </ul>
+    </div>
+
+    <div class="admin-content">
+
+        <div id="view-dashboard" class="page-container active">
+            <div class="layui-row layui-col-space20">
+                <div class="layui-col-md3 layui-col-sm6">
+                    <div class="stat-card">
+                        <div><div class="stat-title">总注册用户</div><div class="stat-value" id="count-users">0</div><div class="text-success"><i class="layui-icon layui-icon-up"></i> 12% 同比增长</div></div>
+                        <i class="layui-icon layui-icon-user stat-icon"></i>
+                    </div>
+                </div>
+                <div class="layui-col-md3 layui-col-sm6">
+                    <div class="stat-card">
+                        <div><div class="stat-title">待审批事项</div><div class="stat-value text-warning" id="count-pending">0</div><div style="color:#666; font-size:12px;">请尽快处理</div></div>
+                        <i class="layui-icon layui-icon-flag stat-icon" style="color:#fa8c16"></i>
+                    </div>
+                </div>
+                <div class="layui-col-md3 layui-col-sm6">
+                    <div class="stat-card">
+                        <div><div class="stat-title">今日访问量</div><div class="stat-value text-primary">12,450</div><div class="text-success"><i class="layui-icon layui-icon-up"></i> 5%</div></div>
+                        <i class="layui-icon layui-icon-chart-screen stat-icon" style="color:#1890ff"></i>
+                    </div>
+                </div>
+                <div class="layui-col-md3 layui-col-sm6">
+                    <div class="stat-card">
+                        <div><div class="stat-title">群众满意度</div><div class="stat-value text-danger">99.2%</div><div id="rate-star"></div></div>
+                        <i class="layui-icon layui-icon-praise stat-icon" style="color:#ff4d4f"></i>
+                    </div>
+                </div>
+            </div>
+
+            <div class="layui-row layui-col-space20" style="margin-top: 0;">
+                <div class="layui-col-md8">
+                    <div class="card">
+                        <div class="card-header">近七日办件趋势</div>
+                        <div id="chart-line" style="width: 100%; height: 350px;"></div>
+                    </div>
+                </div>
+                <div class="layui-col-md4">
+                    <div class="card">
+                        <div class="card-header">热门事项分布</div>
+                        <div id="chart-pie" style="width: 100%; height: 350px;"></div>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <div id="view-user" class="page-container">
+            <div class="card">
+                <div class="card-header">用户列表管理</div>
+                <div class="table-toolbar">
+                    <input type="text" class="layui-input" placeholder="输入用户名/手机号" style="width: 200px;">
+                    <button class="layui-btn layui-btn-normal"><i class="layui-icon layui-icon-search"></i> 查询</button>
+                </div>
+                <table id="userTable" lay-filter="userTable"></table>
+            </div>
+        </div>
+
+        <div id="view-approval" class="page-container">
+            <div class="card">
+                <div class="card-header">在线业务审批</div>
+                <div class="layui-tab layui-tab-brief" lay-filter="approvalTab">
+                    <ul class="layui-tab-title">
+                        <li class="layui-this" lay-id="0">待审核</li>
+                        <li lay-id="1">已审核</li>
+                    </ul>
+                    <div class="layui-tab-content">
+                        <table id="approvalTable" lay-filter="approvalTable"></table>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <div id="view-feedback" class="page-container">
+            <div class="card">
+                <div class="card-header">公众反馈处理</div>
+                <table id="feedbackTable" lay-filter="feedbackTable"></table>
+            </div>
+        </div>
+
+        <div id="view-faq" class="page-container">
+            <div class="card">
+                <div class="card-header">
+                    FAQ 知识库
+                    <button class="layui-btn layui-btn-sm" id="btn-add-faq"><i class="layui-icon layui-icon-add-1"></i> 新增</button>
+                </div>
+                <table id="faqTable" lay-filter="faqTable"></table>
+            </div>
+        </div>
+
+        <div id="view-logs" class="page-container">
+            <div class="card">
+                <div class="card-header">系统操作日志</div>
+                <div class="table-toolbar">
+                    <input type="text" id="logDate" class="layui-input" placeholder="选择日期范围" style="width: 200px;">
+                    <button class="layui-btn layui-btn-primary">筛选</button>
+                </div>
+                <table id="logTable" lay-filter="logTable"></table>
+            </div>
+        </div>
+
+        <div id="view-backup" class="page-container">
+            <div class="card">
+                <div class="card-header">数据备份与恢复</div>
+                <div class="layui-elem-quote">系统每日凌晨 03:00 自动进行全量备份。</div>
+                <button class="layui-btn layui-btn-normal" id="btn-backup-now"><i class="layui-icon layui-icon-upload-drag"></i> 立即备份当前数据</button>
+                <table id="backupTable" lay-filter="backupTable" style="margin-top: 10px;"></table>
+            </div>
+        </div>
+
+    </div>
+</div>
+
+<script type="text/html" id="userStatusTpl">
+    <input type="checkbox" name="status" value="{{d.id}}" lay-skin="switch" lay-text="启用|禁用" lay-filter="statusSwitch" {{# if(d.status == 1){ }}checked{{# } }}>
+</script>
+<script type="text/html" id="userBar">
+    <a class="layui-btn layui-btn-xs layui-btn-primary" lay-event="edit">编辑</a>
+</script>
+<script type="text/html" id="appStatusTpl">
+    {{# if(d.status === 0){ }}<span class="layui-badge layui-bg-orange">待审核</span>
+    {{# } else if(d.status === 1){ }}<span class="layui-badge layui-bg-green">已通过</span>
+    {{# } else { }}<span class="layui-badge">已驳回</span>{{# } }}
+</script>
+<script type="text/html" id="appBar">
+    {{# if(d.status === 0){ }}
+    <a class="layui-btn layui-btn-xs" lay-event="pass">通过</a>
+    <a class="layui-btn layui-btn-danger layui-btn-xs" lay-event="reject">驳回</a>
+    {{# } else { }}
+    <a class="layui-btn layui-btn-xs layui-btn-disabled">已处理</a>
+    {{# } }}
+</script>
+<script type="text/html" id="fbBar">
+    {{# if(d.status !== 2){ }}<a class="layui-btn layui-btn-xs" lay-event="reply">回复</a>
+    {{# } else { }}<a class="layui-btn layui-btn-xs layui-btn-disabled">已完结</a>{{# } }}
+</script>
+<script type="text/html" id="faqBar">
+    <a class="layui-btn layui-btn-xs layui-btn-danger" lay-event="del">删除</a>
+</script>
+<script type="text/html" id="backupBar">
+    <a class="layui-btn layui-btn-xs layui-btn-primary" lay-event="down">下载</a>
+</script>
+
+<script src="layui/layui.js"></script>
+<script src="ai.js" onerror="console.log('AI module loaded')"></script>
+<script>
+    layui.use(['element', 'table', 'layer', 'form', 'laydate', 'rate'], function(){
+        var element = layui.element,
+            table = layui.table,
+            layer = layui.layer,
+            form = layui.form,
+            laydate = layui.laydate,
+            rate = layui.rate,
+            $ = layui.$;
+
+        // --- 数据加载 ---
+        var loadData = (key) => JSON.parse(localStorage.getItem(key) || '[]');
+        var userList = loadData('gov_user_list');
+        var appList = loadData('gov_applications');
+        var feedbackList = loadData('gov_feedbacks');
+        var faqList = loadData('gov_faqs');
+        var logList = loadData('gov_logs');
+
+        // --- 1. 全局交互 ---
+        // 时钟
+        setInterval(() => $('#sys-time').text(new Date().toLocaleTimeString()), 1000);
+
+        // 移动端菜单切换
+        $('#menu-toggle').click(function(){ $('#sidebar').toggleClass('show'); });
+
+        // 页面切换核心逻辑
+        window.switchPage = function(pageId, el) {
+            // 样式切换
+            $('.menu-item').removeClass('active');
+            $(el).addClass('active');
+
+            // 内容显示
+            $('.page-container').removeClass('active');
+            $('#view-' + pageId).addClass('active');
+
+            // 移动端自动收起
+            if($(window).width() <= 768) $('#sidebar').removeClass('show');
+
+            // 特定页面初始化 (解决表格宽度坍缩/图表渲染问题)
+            if(pageId === 'dashboard') {
+                setTimeout(() => {
+                    if(chartLine) chartLine.resize();
+                    if(chartPie) chartPie.resize();
+                }, 200);
+            } else if(pageId === 'user') {
+                table.resize('userTableId');
+            } else if(pageId === 'approval') {
+                table.resize('approvalTableId');
+            } else if(pageId === 'feedback') {
+                table.resize('feedbackTableId');
+            } else if(pageId === 'faq') {
+                table.resize('faqTableId');
+            } else if(pageId === 'logs') {
+                table.resize('logTableId');
+            } else if(pageId === 'backup') {
+                table.resize('backupTableId');
+            }
+        };
+
+        // --- 2. 仪表盘初始化 ---
+        $('#count-users').text(userList.length);
+        $('#count-pending').text(appList.filter(x => x.status === 0).length);
+        rate.render({ elem: '#rate-star', value: 4.5, readonly: true, half: true, theme: '#ff4d4f' });
+
+        // 图表
+        var chartLine = echarts.init(document.getElementById('chart-line'));
+        var chartPie = echarts.init(document.getElementById('chart-pie'));
+
+        chartLine.setOption({
+            tooltip: { trigger: 'axis' },
+            grid: { left: '3%', right: '4%', bottom: '3%', containLabel: true },
+            xAxis: { type: 'category', boundaryGap: false, data: ['周一','周二','周三','周四','周五','周六','周日'] },
+            yAxis: { type: 'value' },
+            series: [
+                { name: '线上', type: 'line', smooth: true, data: [120, 132, 101, 134, 90, 230, 210], itemStyle: {color:'#1890ff'}, areaStyle: {opacity:0.1} },
+                { name: '线下', type: 'line', smooth: true, data: [220, 182, 191, 234, 290, 330, 310], itemStyle: {color:'#fa8c16'} }
+            ]
+        });
+
+        chartPie.setOption({
+            tooltip: { trigger: 'item' },
+            series: [{
+                type: 'pie', radius: ['40%', '70%'],
+                data: [
+                    { value: 1048, name: '企业开办', itemStyle:{color:'#1890ff'} },
+                    { value: 735, name: '社保医保', itemStyle:{color:'#52c41a'} },
+                    { value: 580, name: '公积金', itemStyle:{color:'#fa8c16'} },
+                    { value: 484, name: '其他', itemStyle:{color:'#bfbfbf'} }
+                ]
+            }]
+        });
+
+        window.onresize = function() { chartLine.resize(); chartPie.resize(); };
+
+        // --- 3. 表格渲染 (关键：设置ID以便resize) ---
+
+        // 用户表
+        table.render({
+            elem: '#userTable', id: 'userTableId',
+            data: userList, page: true, skin: 'line',
+            cols: [[
+                {field: 'username', title: '用户名', width: 150},
+                {field: 'phone', title: '手机号', width: 150},
+                {field: 'role', title: '角色', width: 100},
+                {field: 'regTime', title: '注册时间', width: 180},
+                {field: 'status', title: '状态', templet: '#userStatusTpl', width: 100},
+                {title: '操作', toolbar: '#userBar', width: 100}
+            ]]
+        });
+        // 用户状态开关
+        form.on('switch(statusSwitch)', function(obj){
+            var list = loadData('gov_user_list');
+            var u = list.find(x => x.id == this.value);
+            if(u) {
+                u.status = obj.elem.checked ? 1 : 0;
+                localStorage.setItem('gov_user_list', JSON.stringify(list));
+                layer.tips('状态已更新', obj.othis);
+            }
+        });
+
+        // 审批表
+        var renderAppTable = (status) => {
+            var data = status === 0 ? appList.filter(x => x.status === 0) : appList.filter(x => x.status !== 0);
+            table.render({
+                elem: '#approvalTable', id: 'approvalTableId',
+                data: data, page: true, skin: 'line',
+                cols: [[
+                    {field: 'id', title: '流水号', width: 160},
+                    {field: 'service', title: '申报事项', minWidth: 200},
+                    {field: 'applicant', title: '申请人', width: 120},
+                    {field: 'applyTime', title: '时间', width: 180},
+                    {field: 'status', title: '状态', templet: '#appStatusTpl', width: 100},
+                    {title: '操作', toolbar: '#appBar', width: 150, fixed: 'right'}
+                ]]
+            });
+        };
+        renderAppTable(0); // 默认显示待审核
+        element.on('tab(approvalTab)', function(data){
+            renderAppTable(data.index);
+        });
+        // 审批操作
+        table.on('tool(approvalTable)', function(obj){
+            if(obj.event === 'pass' || obj.event === 'reject') {
+                layer.confirm('确认执行此操作？', function(idx){
+                    var apps = loadData('gov_applications');
+                    var target = apps.find(x => x.id === obj.data.id);
+                    if(target) {
+                        target.status = obj.event === 'pass' ? 1 : 2;
+                        localStorage.setItem('gov_applications', JSON.stringify(apps));
+                        appList = apps; // 更新内存数据
+                        renderAppTable(0); // 刷新
+
+                        // 发通知
+                        var notes = loadData('gov_notifications');
+                        notes.unshift({
+                            title: obj.event==='pass'?'审核通过':'审核驳回',
+                            content: `您申请的 ${target.service} 已${obj.event==='pass'?'通过':'被驳回'}。`,
+                            time: new Date().toLocaleString(),
+                            targetUser: target.applicant,
+                            read: false
+                        });
+                        localStorage.setItem('gov_notifications', JSON.stringify(notes));
+                        layer.msg('操作成功');
+                    }
+                    layer.close(idx);
+                });
+            }
+        });
+
+        // 反馈表
+        table.render({
+            elem: '#feedbackTable', id: 'feedbackTableId',
+            data: feedbackList, page: true, skin: 'line',
+            cols: [[
+                {field: 'type', title: '类型', width: 100},
+                {field: 'content', title: '内容', minWidth: 200},
+                {field: 'time', title: '时间', width: 180},
+                {field: 'status', title: '状态', width: 100, templet: d => d.status===2?'<span class="layui-badge layui-bg-green">已结</span>':'<span class="layui-badge layui-bg-gray">待办</span>'},
+                {title: '操作', toolbar: '#fbBar', width: 80}
+            ]]
+        });
+        table.on('tool(feedbackTable)', function(obj){
+            if(obj.event === 'reply') {
+                layer.prompt({title: '请输入处理结果'}, function(val, index){
+                    var list = loadData('gov_feedbacks');
+                    var item = list.find(x => x.id === obj.data.id);
+                    if(item) {
+                        item.status = 2; item.result = val;
+                        localStorage.setItem('gov_feedbacks', JSON.stringify(list));
+                        feedbackList = list;
+                        table.reload('feedbackTableId', {data: list});
+                    }
+                    layer.close(index);
+                });
+            }
+        });
+
+// FAQ表
+        table.render({
+            elem: '#faqTable', id: 'faqTableId',
+            data: faqList, page: true, skin: 'line',
+            cols: [[
+                {field: 'question', title: '标准问题/关键词', minWidth: 250, edit: 'text'}, // 允许直接编辑问题
+                {field: 'answer', title: '标准回复', minWidth: 300, edit: 'text'}, // 允许直接编辑答案
+                {field: 'category', title: '分类', width: 120},
+                {title: '操作', toolbar: '#faqBar', width: 80}
+            ]]
+        });
+
+        // 监听单元格编辑，实时保存
+        table.on('edit(faqTable)', function(obj){
+            var updatedList = loadData('gov_faqs');
+            // 找到并更新对应索引的数据 (注意：这里假设表格顺序未变，严谨做法是根据ID匹配，但在简单mock中直接替换即可)
+            // 由于 table.render 的 data 是 faqList 的引用，Layui 会自动更新 ui 中的 data
+            // 我们需要把 obj.data 同步回 localStorage
+
+            // 简单粗暴法：直接用当前表格的所有缓存数据覆盖 storage
+            var currentData = table.cache['faqTableId'];
+            localStorage.setItem('gov_faqs', JSON.stringify(currentData));
+            layer.msg('修改已保存');
+        });
+
+        $('#btn-add-faq').click(function(){
+            layer.open({
+                type: 1,
+                title: '新增知识库条目',
+                area: ['500px', '450px'],
+                btn: ['保存', '取消'],
+                content: `
+                    <div style="padding: 24px;">
+                        <div class="layui-form-item">
+                            <label class="layui-form-label">标准问题</label>
+                            <div class="layui-input-block">
+                                <input type="text" id="faq-title" class="layui-input" placeholder="用户可能会问的问题，如：社保电话">
+                            </div>
+                        </div>
+                        <div class="layui-form-item">
+                            <label class="layui-form-label">问题分类</label>
+                            <div class="layui-input-block">
+                                <select id="faq-cat" class="layui-input" style="display:block; width:100%; height:38px;">
+                                    <option value="社保业务">社保业务</option>
+                                    <option value="公积金">公积金</option>
+                                    <option value="医疗卫生">医疗卫生</option>
+                                    <option value="户籍管理">户籍管理</option>
+                                    <option value="通用咨询">通用咨询</option>
+                                </select>
+                            </div>
+                        </div>
+                        <div class="layui-form-item">
+                            <label class="layui-form-label">标准回复</label>
+                            <div class="layui-input-block">
+                                <textarea id="faq-answer" class="layui-textarea" placeholder="AI将直接回复此内容，请准确填写" style="height:120px;"></textarea>
+                            </div>
+                        </div>
+                    </div>
+                `,
+                yes: function(index, layero){
+                    var title = $('#faq-title').val().trim();
+                    var cat = $('#faq-cat').val();
+                    var ans = $('#faq-answer').val().trim();
+
+                    if(!title || !ans) {
+                        layer.msg('问题和回复不能为空', {icon: 2, anim: 6});
+                        return;
+                    }
+
+                    var list = loadData('gov_faqs');
+                    list.unshift({
+                        id: 'FAQ' + new Date().getTime(), // 增加唯一ID
+                        question: title,
+                        category: cat,
+                        answer: ans,
+                        updateTime: new Date().toLocaleDateString()
+                    });
+                    localStorage.setItem('gov_faqs', JSON.stringify(list));
+
+                    // 刷新表格
+                    table.reload('faqTableId', {data: list});
+                    layer.close(index);
+                    layer.msg('添加成功，前台AI已生效', {icon: 1});
+                }
+            });
+        });
+
+        table.on('tool(faqTable)', function(obj){
+            if(obj.event === 'del') {
+                layer.confirm('删除此条知识？', function(idx){
+                    var list = loadData('gov_faqs');
+                    // 假设 obj.data 中有 id，或者通过行索引删除
+                    // 这里的 obj.data 对应的是当前行数据
+
+                    // 更加稳健的删除方式：过滤掉当前删除的项
+                    var newList = list.filter(item => item.question !== obj.data.question); // 简单用问题匹配，严谨应用ID
+
+                    localStorage.setItem('gov_faqs', JSON.stringify(newList));
+                    obj.del();
+                    layer.close(idx);
+                    layer.msg('已删除');
+                });
+            }
+        });
+
+        // 日志表
+        laydate.render({ elem: '#logDate', range: true });
+        table.render({
+            elem: '#logTable', id: 'logTableId',
+            data: logList, page: true, skin: 'line',
+            cols: [[
+                {field: 'time', title: '时间', width: 180},
+                {field: 'operator', title: '操作人', width: 120},
+                {field: 'type', title: '类型', width: 100},
+                {field: 'detail', title: '详情', minWidth: 200}
+            ]]
+        });
+
+        // 备份表
+        table.render({
+            elem: '#backupTable', id: 'backupTableId',
+            data: [{name: 'backup_auto_20231026.json', size: '2.4MB', time: '2023-10-26 03:00'}],
+            cols: [[
+                {field: 'name', title: '文件名'},
+                {field: 'size', title: '大小', width: 100},
+                {field: 'time', title: '备份时间', width: 180},
+                {title: '操作', toolbar: '#backupBar', width: 80}
+            ]]
+        });
+        $('#btn-backup-now').click(function(){
+            layer.msg('正在执行全量备份...', {icon: 16, time: 1000}, function(){
+                layer.msg('备份成功', {icon: 1});
+            });
+        });
+
+    });
+</script>
+</body>
+</html>
