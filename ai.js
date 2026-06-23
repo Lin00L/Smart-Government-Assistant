@@ -47,9 +47,9 @@
 
         // --- 配置中心 ---
         const CONFIG = {
-            APPID: "1562f943",
-            APISecret: "YTNkYTE3MjkyMWMyODA3MTBkNTkyM2Zm",
-            APIKey: "2cdbcc531505a58d8ce79bd2fb86d416",
+            APPID: "",
+            APISecret: "",
+            APIKey: "",
             hostUrl: "wss://spark-api.xf-yun.com/v1.1/chat"
         };
 
